@@ -49,8 +49,9 @@ export default function Colecoes() {
           )
           const finalPrice = getFinalPrice(collection.price, collection.discountPercent)
           return (
-          <div
+          <Link
             key={collection.id}
+            to={`/colecoes/${collection.id}`}
             className="collection-card rounded-2xl overflow-hidden group border"
             style={{
               borderColor: collection.color + '20',
@@ -108,14 +109,17 @@ export default function Colecoes() {
                   </p>
                 )}
                 <button
-                  onClick={() =>
+                  type="button"
+                  onClick={event => {
+                    event.preventDefault()
+                    event.stopPropagation()
                     addItem({
                       id: -collection.id,
                       name: `Colecao ${collection.name}`,
                       price: finalPrice,
                       image: collection.image,
                     })
-                  }
+                  }}
                   className="mt-4 w-fit bg-neon-pink hover:bg-hot-pink text-white px-4 py-2 rounded-lg font-heading font-bold text-sm tracking-wider transition-all flex items-center gap-2"
                 >
                   <ShoppingCart className="w-4 h-4" />
@@ -132,7 +136,7 @@ export default function Colecoes() {
                 style={{ borderColor: collection.color }}
               />
             </div>
-          </div>
+          </Link>
           )
         })}
       </div>

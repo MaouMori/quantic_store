@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Loja from './pages/Loja'
 import Produto from './pages/Produto'
 import Colecoes from './pages/Colecoes'
+import ColecaoDetalhe from './pages/ColecaoDetalhe'
 import Sobre from './pages/Sobre'
 import Termos from './pages/Termos'
 import CartDrawer from './components/CartDrawer'
@@ -113,6 +114,7 @@ function AppContent() {
                 <Route path="/loja" element={<Loja />} />
                 <Route path="/produto/:id" element={<Produto />} />
                 <Route path="/colecoes" element={<Colecoes />} />
+                <Route path="/colecoes/:id" element={<ColecaoDetalhe />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/termos" element={<Termos />} />
               </Routes>

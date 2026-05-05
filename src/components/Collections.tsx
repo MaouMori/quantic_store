@@ -1,7 +1,11 @@
 import { ChevronRight, Sparkles } from 'lucide-react'
-import { collections } from '../data/storeData'
+import { Link } from 'react-router-dom'
+import { useAdmin } from '../context/useAdmin'
 
 export default function Collections() {
+  const { storeCollections } = useAdmin()
+  const collections = storeCollections.filter(collection => collection.active).slice(0, 4)
+
   return (
     <section className="py-12 lg:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,17 +18,18 @@ export default function Collections() {
             </h2>
             <Sparkles className="w-5 h-5 text-neon-pink" />
           </div>
-          <button className="text-sm text-text-muted hover:text-neon-pink transition-colors flex items-center gap-1 font-heading">
+          <Link to="/colecoes" className="text-sm text-text-muted hover:text-neon-pink transition-colors flex items-center gap-1 font-heading">
             VER TODAS AS COLECOES
             <ChevronRight className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
 
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {collections.map(collection => (
-            <div
+            <Link
               key={collection.id}
+              to={`/colecoes/${collection.id}`}
               className="collection-card rounded-xl overflow-hidden cursor-pointer group"
               style={{
                 borderColor: collection.color + '30',
@@ -82,9 +87,12 @@ export default function Collections() {
                   style={{ borderColor: collection.color }}
                 />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
+        {collections.length === 0 && (
+          <p className="text-text-dim text-sm">Nenhuma colecao ativa cadastrada no painel.</p>
+        )}
       </div>
     </section>
   )

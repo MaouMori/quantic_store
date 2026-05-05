@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Save, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Save, X, Upload } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
 import type { StoreCollection } from '../../context/AdminContext'
 import { AdminFeedback } from '../../components/admin/AdminFeedback'
@@ -22,6 +22,7 @@ export default function AdminColecoes() {
     addStoreCollection,
     updateStoreCollection,
     deleteStoreCollection,
+    uploadImage,
   } = useAdmin()
   const [editing, setEditing] = useState<StoreCollection | null>(null)
   const [creating, setCreating] = useState(false)
@@ -112,6 +113,7 @@ export default function AdminColecoes() {
         <CollectionModal
           collection={editing}
           products={products}
+          uploadImage={uploadImage}
           onClose={() => {
             setCreating(false)
             setEditing(null)
@@ -137,11 +139,13 @@ export default function AdminColecoes() {
 function CollectionModal({
   collection,
   products,
+  uploadImage,
   onClose,
   onSave,
 }: {
   collection: StoreCollection | null
   products: { id: number; name: string }[]
+  uploadImage: (file: File, path: string) => Promise<string | null>
   onClose: () => void
   onSave: (collection: Omit<StoreCollection, 'id' | 'createdAt'>) => Promise<void>
 }) {
@@ -158,6 +162,7 @@ function CollectionModal({
     } : emptyCollection
   )
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const toggleProduct = (id: number) => {
     setForm(prev => ({
@@ -166,6 +171,15 @@ function CollectionModal({
         ? prev.productIds.filter(productId => productId !== id)
         : [...prev.productIds, id],
     }))
+  }
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const url = await uploadImage(file, 'collections')
+    setUploading(false)
+    if (url) setForm(prev => ({ ...prev, image: url }))
   }
 
   return (
@@ -212,9 +226,27 @@ function CollectionModal({
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Imagem</label>
-              <input required value={form.image} onChange={e => setForm({ ...form, image: e.target.value })}
-                placeholder="URL da imagem da colecao"
-                className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50" />
+              <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-3">
+                <div className="aspect-[4/3] rounded-xl overflow-hidden bg-void-lighter border border-neon-pink/10">
+                  {form.image ? (
+                    <img src={form.image} alt="Preview da colecao" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-text-dim text-xs text-center px-3">
+                      Preview
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input required value={form.image} onChange={e => setForm({ ...form, image: e.target.value })}
+                    placeholder="URL da imagem da colecao"
+                    className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 mb-2" />
+                  <label className="flex items-center gap-2 cursor-pointer bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors w-fit">
+                    <Upload className="w-4 h-4" />
+                    <span>{uploading ? 'Enviando...' : 'Anexar imagem'}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Descricao curta</label>
