@@ -23,6 +23,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Check if Supabase is configured
+const isSupabaseConfigured = () => {
+  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -48,11 +53,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false)
+      return
+    }
+
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id)
-        setUser(profile)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id)
+          setUser(profile)
+        }
+      } catch (err) {
+        console.error('Auth init error:', err)
       }
       setIsLoading(false)
     }
@@ -74,6 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile])
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: 'Supabase nao configurado. Verifique as variaveis de ambiente.' }
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -99,22 +117,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) return { success: false, error: error.message }
-
-    if (data.user) {
-      const profile = await fetchProfile(data.user.id)
-      setUser(profile)
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: 'Supabase nao configurado. Verifique as variaveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.' }
     }
 
-    return { success: true }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) return { success: false, error: error.message }
+
+      if (data.user) {
+        const profile = await fetchProfile(data.user.id)
+        setUser(profile)
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Erro ao conectar com o servidor.' }
+    }
   }, [fetchProfile])
 
   const logout = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setUser(null)
+      return
+    }
     await supabase.auth.signOut()
     setUser(null)
   }, [])

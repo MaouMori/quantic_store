@@ -1,7 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Tables } from '../lib/supabase'
 import type { Product } from '../data/storeData'
+
+// Check if Supabase is configured
+const isSupabaseConfigured = () => {
+  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+}
 
 export interface Order {
   id: string
@@ -97,7 +101,7 @@ interface AdminContextType {
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
-function mapDbProduct(row: Tables['products']): Product {
+function mapDbProduct(row: any): Product {
   return {
     id: row.id,
     name: row.name,
@@ -116,12 +120,12 @@ function mapDbProduct(row: Tables['products']): Product {
   }
 }
 
-function mapDbOrder(row: Tables['orders']): Order {
+function mapDbOrder(row: any): Order {
   return {
     id: row.id,
     customer: row.customer_name,
     customerAvatar: row.customer_avatar || '/avatars/default.jpg',
-    date: new Date(row.created_at || '').toLocaleString('pt-BR'),
+    date: row.created_at ? new Date(row.created_at).toLocaleString('pt-BR') : '',
     status: row.status,
     total: row.total,
     items: (row.items || []).map((item: any) => ({
@@ -133,7 +137,7 @@ function mapDbOrder(row: Tables['orders']): Order {
   }
 }
 
-function mapDbCoupon(row: Tables['coupons']): Coupon {
+function mapDbCoupon(row: any): Coupon {
   return {
     id: row.id,
     code: row.code,
@@ -147,7 +151,7 @@ function mapDbCoupon(row: Tables['coupons']): Coupon {
   }
 }
 
-function mapDbBanner(row: Tables['banners']): Banner {
+function mapDbBanner(row: any): Banner {
   return {
     id: row.id,
     title: row.title,
@@ -159,7 +163,7 @@ function mapDbBanner(row: Tables['banners']): Banner {
   }
 }
 
-function mapDbRole(row: Tables['roles']): Role {
+function mapDbRole(row: any): Role {
   return {
     id: row.id,
     name: row.name,
@@ -168,7 +172,7 @@ function mapDbRole(row: Tables['roles']): Role {
   }
 }
 
-function mapDbCustomer(row: Tables['customers']): Customer {
+function mapDbCustomer(row: any): Customer {
   return {
     id: row.id,
     name: row.name,
@@ -177,7 +181,7 @@ function mapDbCustomer(row: Tables['customers']): Customer {
     discord: row.discord || '',
     totalOrders: row.total_orders,
     totalSpent: row.total_spent,
-    joinedAt: new Date(row.created_at || '').toLocaleDateString('pt-BR'),
+    joinedAt: row.created_at ? new Date(row.created_at).toLocaleDateString('pt-BR') : '',
     status: row.status,
   }
 }
@@ -193,6 +197,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [isLoading] = useState(false)
 
   const refreshProducts = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -201,6 +206,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshOrders = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -209,6 +215,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshCoupons = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
       .from('coupons')
       .select('*')
@@ -217,6 +224,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshCustomers = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -225,6 +233,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshBanners = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
       .from('banners')
       .select('*')
@@ -233,6 +242,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshRoles = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
       .from('roles')
       .select('*')
@@ -250,6 +260,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshRoles])
 
   const uploadImage = useCallback(async (file: File, path: string) => {
+    if (!isSupabaseConfigured()) {
+      console.error('Supabase nao configurado para upload de imagens')
+      return null
+    }
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}.${fileExt}`
     const filePath = `${path}/${fileName}`
@@ -268,6 +282,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('products').insert({
       name: product.name,
       price: product.price,
@@ -288,6 +303,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshProducts])
 
   const updateProduct = useCallback(async (id: number, product: Partial<Product>) => {
+    if (!isSupabaseConfigured()) return false
     const updateData: any = {}
     if (product.name !== undefined) updateData.name = product.name
     if (product.price !== undefined) updateData.price = product.price
@@ -309,12 +325,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshProducts])
 
   const deleteProduct = useCallback(async (id: number) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('products').delete().eq('id', id)
     if (!error) await refreshProducts()
     return !error
   }, [refreshProducts])
 
   const addOrder = useCallback(async (order: Omit<Order, 'id'>) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('orders').insert({
       customer_name: order.customer,
       customer_avatar: order.customerAvatar,
@@ -332,12 +350,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshOrders])
 
   const updateOrderStatus = useCallback(async (id: string, status: Order['status']) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('orders').update({ status }).eq('id', id)
     if (!error) await refreshOrders()
     return !error
   }, [refreshOrders])
 
   const addCoupon = useCallback(async (coupon: Omit<Coupon, 'id' | 'uses'>) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('coupons').insert({
       code: coupon.code,
       discount: coupon.discount,
@@ -353,6 +373,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshCoupons])
 
   const updateCoupon = useCallback(async (id: string, coupon: Partial<Coupon>) => {
+    if (!isSupabaseConfigured()) return false
     const updateData: any = {}
     if (coupon.code !== undefined) updateData.code = coupon.code
     if (coupon.discount !== undefined) updateData.discount = coupon.discount
@@ -369,12 +390,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshCoupons])
 
   const deleteCoupon = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('coupons').delete().eq('id', id)
     if (!error) await refreshCoupons()
     return !error
   }, [refreshCoupons])
 
   const addBanner = useCallback(async (banner: Omit<Banner, 'id' | 'createdAt'>) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('banners').insert({
       title: banner.title,
       image: banner.image,
@@ -387,6 +410,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshBanners])
 
   const updateBanner = useCallback(async (id: string, banner: Partial<Banner>) => {
+    if (!isSupabaseConfigured()) return false
     const updateData: any = {}
     if (banner.title !== undefined) updateData.title = banner.title
     if (banner.image !== undefined) updateData.image = banner.image
@@ -400,12 +424,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshBanners])
 
   const deleteBanner = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('banners').delete().eq('id', id)
     if (!error) await refreshBanners()
     return !error
   }, [refreshBanners])
 
   const addRole = useCallback(async (role: Omit<Role, 'id'>) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('roles').insert({
       name: role.name,
       color: role.color,
@@ -416,6 +442,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshRoles])
 
   const updateRole = useCallback(async (id: string, role: Partial<Role>) => {
+    if (!isSupabaseConfigured()) return false
     const updateData: any = {}
     if (role.name !== undefined) updateData.name = role.name
     if (role.color !== undefined) updateData.color = role.color
@@ -427,6 +454,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [refreshRoles])
 
   const deleteRole = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return false
     const { error } = await supabase.from('roles').delete().eq('id', id)
     if (!error) await refreshRoles()
     return !error
