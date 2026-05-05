@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { getAuthErrorMessage } from '../lib/authErrors'
 import { AuthContext } from './authContextValue'
 
 export interface User {
@@ -67,7 +68,7 @@ const buildFallbackUser = (authUser: SupabaseUser): User => ({
 })
 
 const getErrorMessage = (err: unknown) => {
-  return err instanceof Error ? err.message : 'Erro ao conectar com o servidor.'
+  return err instanceof Error ? getAuthErrorMessage(err.message) : 'Erro ao conectar com o servidor.'
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -161,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     })
 
-    if (error) return { success: false, error: error.message }
+    if (error) return { success: false, error: getAuthErrorMessage(error.message) }
 
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').upsert({
@@ -194,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       })
 
-      if (error) return { success: false, error: error.message }
+      if (error) return { success: false, error: getAuthErrorMessage(error.message) }
 
       if (data.user) {
         const profile = await fetchProfile(data.user)

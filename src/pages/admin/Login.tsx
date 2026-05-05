@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getAuthErrorMessage } from '../../lib/authErrors'
 import { useAuth } from '../../context/useAuth'
 import { LogIn, Eye, EyeOff, Skull, UserPlus, ArrowLeft } from 'lucide-react'
 
@@ -54,7 +55,7 @@ export default function Login() {
         redirectTo: `${window.location.origin}/admin/reset-password`,
       }))
       if (error) {
-        setError(error.message)
+        setError(getAuthErrorMessage(error.message))
       } else {
         setSuccess('Email de recuperacao enviado! Verifique sua caixa de entrada.')
       }
