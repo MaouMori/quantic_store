@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { supabase } from '../lib/supabase'
+import type { Tables } from '../lib/supabase'
 import type { Product } from '../data/storeData'
 
 export interface Order {
@@ -60,163 +62,410 @@ export interface Role {
 }
 
 interface AdminContextType {
+  products: Product[]
+  collections: Product[]
   orders: Order[]
   coupons: Coupon[]
   customers: Customer[]
   activities: Activity[]
   banners: Banner[]
   roles: Role[]
-  adminProducts: Product[]
-  addProduct: (product: Omit<Product, 'id'>) => void
-  updateProduct: (id: number, product: Partial<Product>) => void
-  deleteProduct: (id: number) => void
-  addOrder: (order: Omit<Order, 'id'>) => void
-  updateOrderStatus: (id: string, status: Order['status']) => void
-  addCoupon: (coupon: Omit<Coupon, 'id' | 'uses'>) => void
-  updateCoupon: (id: string, coupon: Partial<Coupon>) => void
-  deleteCoupon: (id: string) => void
-  addCustomer: (customer: Omit<Customer, 'id' | 'totalOrders' | 'totalSpent'>) => void
-  addActivity: (activity: Omit<Activity, 'id'>) => void
-  addBanner: (banner: Omit<Banner, 'id' | 'createdAt'>) => void
-  updateBanner: (id: string, banner: Partial<Banner>) => void
-  deleteBanner: (id: string) => void
-  addRole: (role: Omit<Role, 'id'>) => void
-  updateRole: (id: string, role: Partial<Role>) => void
-  deleteRole: (id: string) => void
+  isLoading: boolean
+  refreshProducts: () => Promise<void>
+  refreshCollections: () => Promise<void>
+  refreshOrders: () => Promise<void>
+  refreshCoupons: () => Promise<void>
+  refreshCustomers: () => Promise<void>
+  refreshBanners: () => Promise<void>
+  refreshRoles: () => Promise<void>
+  addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>
+  updateProduct: (id: number, product: Partial<Product>) => Promise<boolean>
+  deleteProduct: (id: number) => Promise<boolean>
+  addOrder: (order: Omit<Order, 'id'>) => Promise<boolean>
+  updateOrderStatus: (id: string, status: Order['status']) => Promise<boolean>
+  addCoupon: (coupon: Omit<Coupon, 'id' | 'uses'>) => Promise<boolean>
+  updateCoupon: (id: string, coupon: Partial<Coupon>) => Promise<boolean>
+  deleteCoupon: (id: string) => Promise<boolean>
+  addBanner: (banner: Omit<Banner, 'id' | 'createdAt'>) => Promise<boolean>
+  updateBanner: (id: string, banner: Partial<Banner>) => Promise<boolean>
+  deleteBanner: (id: string) => Promise<boolean>
+  addRole: (role: Omit<Role, 'id'>) => Promise<boolean>
+  updateRole: (id: string, role: Partial<Role>) => Promise<boolean>
+  deleteRole: (id: string) => Promise<boolean>
+  uploadImage: (file: File, path: string) => Promise<string | null>
 }
-
-const defaultOrders: Order[] = [
-  { id: '#10234', customer: 'ana.silva', customerAvatar: '/avatars/avatar1.jpg', date: '05/05/2024 14:32', status: 'concluido', total: 159.80, items: [{ productId: 1, name: 'Conjunto Rebel Girl', price: 89.90, quantity: 1 }, { productId: 2, name: 'Top Dark Lace', price: 29.90, quantity: 1 }] },
-  { id: '#10233', customer: 'moon.princess', customerAvatar: '/avatars/avatar2.jpg', date: '05/05/2024 13:15', status: 'concluido', total: 89.90, items: [{ productId: 1, name: 'Conjunto Rebel Girl', price: 89.90, quantity: 1 }] },
-  { id: '#10232', customer: 'dark.doll', customerAvatar: '/avatars/avatar3.jpg', date: '05/05/2024 11:47', status: 'em_processamento', total: 129.70, items: [{ productId: 3, name: 'Calca Cargo Chains', price: 49.90, quantity: 1 }, { productId: 9, name: 'Conjunto Rebel Girl', price: 89.90, quantity: 1 }] },
-  { id: '#10231', customer: 'rebel.girl', customerAvatar: '/avatars/avatar4.jpg', date: '05/05/2024 10:21', status: 'pago', total: 39.90, items: [{ productId: 10, name: 'Mochila Kawaii Dark', price: 39.90, quantity: 1 }] },
-  { id: '#10230', customer: 'chaos.baby', customerAvatar: '/avatars/avatar5.jpg', date: '05/05/2024 09:08', status: 'cancelado', total: 15.90, items: [{ productId: 13, name: 'Cabelo Half & Half', price: 15.90, quantity: 1 }] },
-]
-
-const defaultCoupons: Coupon[] = [
-  { id: '1', code: 'QUANTIC10', discount: 10, type: 'percent', minPurchase: 50, maxUses: 100, uses: 45, expiresAt: '2024-12-31', active: true },
-  { id: '2', code: 'BEMVINDO', discount: 15, type: 'percent', maxUses: 50, uses: 23, expiresAt: '2024-06-30', active: true },
-  { id: '3', code: 'FRETE0', discount: 5, type: 'fixed', maxUses: 200, uses: 89, active: false },
-]
-
-const defaultCustomers: Customer[] = [
-  { id: '1', name: 'Ana Silva', email: 'ana@email.com', avatar: '/avatars/avatar1.jpg', discord: 'ana.silva', totalOrders: 12, totalSpent: 1247.50, joinedAt: '2024-01-15', status: 'ativo' },
-  { id: '2', name: 'Moon Princess', email: 'moon@email.com', avatar: '/avatars/avatar2.jpg', discord: 'moon.princess', totalOrders: 8, totalSpent: 856.30, joinedAt: '2024-02-20', status: 'ativo' },
-  { id: '3', name: 'Dark Doll', email: 'dark@email.com', avatar: '/avatars/avatar3.jpg', discord: 'dark.doll', totalOrders: 5, totalSpent: 432.10, joinedAt: '2024-03-10', status: 'ativo' },
-]
-
-const defaultActivities: Activity[] = [
-  { id: '1', type: 'order', message: 'Novo pedido #10234', date: '05/05/2024 14:32' },
-  { id: '2', type: 'product', message: 'Produto "Conjunto Rebel Girl" atualizado', date: '05/05/2024 13:58' },
-  { id: '3', type: 'customer', message: 'Novo cliente cadastrado: ana.silva', date: '05/05/2024 13:15' },
-  { id: '4', type: 'banner', message: 'Banner "Colecao Dark" publicado', date: '05/05/2024 12:47' },
-  { id: '5', type: 'price', message: 'Valor do produto "Top Dark Lace" alterado', date: '05/05/2024 11:22' },
-]
-
-const defaultBanners: Banner[] = [
-  { id: '1', title: 'Colecao Dark', image: '/banners/dark-collection.jpg', link: '/colecoes', position: 'home', active: true, createdAt: '2024-05-01' },
-]
-
-const defaultRoles: Role[] = [
-  { id: '1', name: 'Administrador', color: '#ff2d95', permissions: ['all'] },
-  { id: '2', name: 'Moderador', color: '#b347d9', permissions: ['products', 'orders', 'users', 'content'] },
-  { id: '3', name: 'Suporte', color: '#4488ff', permissions: ['orders', 'users'] },
-  { id: '4', name: 'Designer', color: '#44ff88', permissions: ['banners', 'pages', 'media'] },
-  { id: '5', name: 'Cliente VIP', color: '#ffdd44', permissions: ['panel_limited'] },
-]
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
+function mapDbProduct(row: Tables['products']): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    image: row.image,
+    images: row.images || [],
+    category: row.category,
+    subcategory: row.subcategory,
+    style: row.style || [],
+    color: row.color || [],
+    isNew: row.is_new,
+    isBestseller: row.is_bestseller,
+    description: row.description,
+    inGameImages: row.in_game_images || [],
+    specs: row.specs || [],
+  }
+}
+
+function mapDbOrder(row: Tables['orders']): Order {
+  return {
+    id: row.id,
+    customer: row.customer_name,
+    customerAvatar: row.customer_avatar || '/avatars/default.jpg',
+    date: new Date(row.created_at || '').toLocaleString('pt-BR'),
+    status: row.status,
+    total: row.total,
+    items: (row.items || []).map((item: any) => ({
+      productId: item.product_id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    })),
+  }
+}
+
+function mapDbCoupon(row: Tables['coupons']): Coupon {
+  return {
+    id: row.id,
+    code: row.code,
+    discount: row.discount,
+    type: row.type,
+    minPurchase: row.min_purchase,
+    maxUses: row.max_uses,
+    uses: row.uses,
+    expiresAt: row.expires_at,
+    active: row.active,
+  }
+}
+
+function mapDbBanner(row: Tables['banners']): Banner {
+  return {
+    id: row.id,
+    title: row.title,
+    image: row.image,
+    link: row.link,
+    position: row.position,
+    active: row.active,
+    createdAt: row.created_at || new Date().toISOString(),
+  }
+}
+
+function mapDbRole(row: Tables['roles']): Role {
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    permissions: row.permissions || [],
+  }
+}
+
+function mapDbCustomer(row: Tables['customers']): Customer {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    avatar: row.avatar || '/avatars/default.jpg',
+    discord: row.discord || '',
+    totalOrders: row.total_orders,
+    totalSpent: row.total_spent,
+    joinedAt: new Date(row.created_at || '').toLocaleDateString('pt-BR'),
+    status: row.status,
+  }
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [orders, setOrders] = useState<Order[]>(defaultOrders)
-  const [coupons, setCoupons] = useState<Coupon[]>(defaultCoupons)
-  const [customers, setCustomers] = useState<Customer[]>(defaultCustomers)
-  const [activities, setActivities] = useState<Activity[]>(defaultActivities)
-  const [banners, setBanners] = useState<Banner[]>(defaultBanners)
-  const [roles, setRoles] = useState<Role[]>(defaultRoles)
-  const [adminProducts, setAdminProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
+  const [activities] = useState<Activity[]>([])
+  const [isLoading] = useState(false)
 
-  const addProduct = useCallback((product: Omit<Product, 'id'>) => {
-    const newProduct = { ...product, id: Date.now() }
-    setAdminProducts(prev => [...prev, newProduct])
+  const refreshProducts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setProducts(data.map(mapDbProduct))
   }, [])
 
-  const updateProduct = useCallback((id: number, product: Partial<Product>) => {
-    setAdminProducts(prev => prev.map(p => p.id === id ? { ...p, ...product } : p))
+  const refreshOrders = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setOrders(data.map(mapDbOrder))
   }, [])
 
-  const deleteProduct = useCallback((id: number) => {
-    setAdminProducts(prev => prev.filter(p => p.id !== id))
+  const refreshCoupons = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setCoupons(data.map(mapDbCoupon))
   }, [])
 
-  const addOrder = useCallback((order: Omit<Order, 'id'>) => {
-    const newOrder = { ...order, id: `#${Date.now()}` }
-    setOrders(prev => [newOrder, ...prev])
+  const refreshCustomers = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setCustomers(data.map(mapDbCustomer))
   }, [])
 
-  const updateOrderStatus = useCallback((id: string, status: Order['status']) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
+  const refreshBanners = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('banners')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setBanners(data.map(mapDbBanner))
   }, [])
 
-  const addCoupon = useCallback((coupon: Omit<Coupon, 'id' | 'uses'>) => {
-    const newCoupon = { ...coupon, id: Date.now().toString(), uses: 0 }
-    setCoupons(prev => [...prev, newCoupon])
+  const refreshRoles = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setRoles(data.map(mapDbRole))
   }, [])
 
-  const updateCoupon = useCallback((id: string, coupon: Partial<Coupon>) => {
-    setCoupons(prev => prev.map(c => c.id === id ? { ...c, ...coupon } : c))
+  useEffect(() => {
+    refreshProducts()
+    refreshOrders()
+    refreshCoupons()
+    refreshCustomers()
+    refreshBanners()
+    refreshRoles()
+  }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshRoles])
+
+  const uploadImage = useCallback(async (file: File, path: string) => {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Date.now()}.${fileExt}`
+    const filePath = `${path}/${fileName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(filePath, file)
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError)
+      return null
+    }
+
+    const { data } = supabase.storage.from('images').getPublicUrl(filePath)
+    return data.publicUrl
   }, [])
 
-  const deleteCoupon = useCallback((id: string) => {
-    setCoupons(prev => prev.filter(c => c.id !== id))
-  }, [])
+  const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
+    const { error } = await supabase.from('products').insert({
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      images: product.images || [],
+      category: product.category,
+      subcategory: product.subcategory,
+      style: product.style || [],
+      color: product.color || [],
+      is_new: product.isNew,
+      is_bestseller: product.isBestseller,
+      description: product.description,
+      in_game_images: product.inGameImages || [],
+      specs: product.specs || [],
+    })
+    if (!error) await refreshProducts()
+    return !error
+  }, [refreshProducts])
 
-  const addCustomer = useCallback((customer: Omit<Customer, 'id' | 'totalOrders' | 'totalSpent'>) => {
-    const newCustomer = { ...customer, id: Date.now().toString(), totalOrders: 0, totalSpent: 0 }
-    setCustomers(prev => [...prev, newCustomer])
-  }, [])
+  const updateProduct = useCallback(async (id: number, product: Partial<Product>) => {
+    const updateData: any = {}
+    if (product.name !== undefined) updateData.name = product.name
+    if (product.price !== undefined) updateData.price = product.price
+    if (product.image !== undefined) updateData.image = product.image
+    if (product.images !== undefined) updateData.images = product.images
+    if (product.category !== undefined) updateData.category = product.category
+    if (product.subcategory !== undefined) updateData.subcategory = product.subcategory
+    if (product.style !== undefined) updateData.style = product.style
+    if (product.color !== undefined) updateData.color = product.color
+    if (product.isNew !== undefined) updateData.is_new = product.isNew
+    if (product.isBestseller !== undefined) updateData.is_bestseller = product.isBestseller
+    if (product.description !== undefined) updateData.description = product.description
+    if (product.inGameImages !== undefined) updateData.in_game_images = product.inGameImages
+    if (product.specs !== undefined) updateData.specs = product.specs
 
-  const addActivity = useCallback((activity: Omit<Activity, 'id'>) => {
-    const newActivity = { ...activity, id: Date.now().toString() }
-    setActivities(prev => [newActivity, ...prev])
-  }, [])
+    const { error } = await supabase.from('products').update(updateData).eq('id', id)
+    if (!error) await refreshProducts()
+    return !error
+  }, [refreshProducts])
 
-  const addBanner = useCallback((banner: Omit<Banner, 'id' | 'createdAt'>) => {
-    const newBanner = { ...banner, id: Date.now().toString(), createdAt: new Date().toISOString() }
-    setBanners(prev => [...prev, newBanner])
-  }, [])
+  const deleteProduct = useCallback(async (id: number) => {
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (!error) await refreshProducts()
+    return !error
+  }, [refreshProducts])
 
-  const updateBanner = useCallback((id: string, banner: Partial<Banner>) => {
-    setBanners(prev => prev.map(b => b.id === id ? { ...b, ...banner } : b))
-  }, [])
+  const addOrder = useCallback(async (order: Omit<Order, 'id'>) => {
+    const { error } = await supabase.from('orders').insert({
+      customer_name: order.customer,
+      customer_avatar: order.customerAvatar,
+      status: order.status,
+      total: order.total,
+      items: order.items.map(i => ({
+        product_id: i.productId,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      })),
+    })
+    if (!error) await refreshOrders()
+    return !error
+  }, [refreshOrders])
 
-  const deleteBanner = useCallback((id: string) => {
-    setBanners(prev => prev.filter(b => b.id !== id))
-  }, [])
+  const updateOrderStatus = useCallback(async (id: string, status: Order['status']) => {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', id)
+    if (!error) await refreshOrders()
+    return !error
+  }, [refreshOrders])
 
-  const addRole = useCallback((role: Omit<Role, 'id'>) => {
-    const newRole = { ...role, id: Date.now().toString() }
-    setRoles(prev => [...prev, newRole])
-  }, [])
+  const addCoupon = useCallback(async (coupon: Omit<Coupon, 'id' | 'uses'>) => {
+    const { error } = await supabase.from('coupons').insert({
+      code: coupon.code,
+      discount: coupon.discount,
+      type: coupon.type,
+      min_purchase: coupon.minPurchase,
+      max_uses: coupon.maxUses,
+      uses: 0,
+      expires_at: coupon.expiresAt,
+      active: coupon.active,
+    })
+    if (!error) await refreshCoupons()
+    return !error
+  }, [refreshCoupons])
 
-  const updateRole = useCallback((id: string, role: Partial<Role>) => {
-    setRoles(prev => prev.map(r => r.id === id ? { ...r, ...role } : r))
-  }, [])
+  const updateCoupon = useCallback(async (id: string, coupon: Partial<Coupon>) => {
+    const updateData: any = {}
+    if (coupon.code !== undefined) updateData.code = coupon.code
+    if (coupon.discount !== undefined) updateData.discount = coupon.discount
+    if (coupon.type !== undefined) updateData.type = coupon.type
+    if (coupon.minPurchase !== undefined) updateData.min_purchase = coupon.minPurchase
+    if (coupon.maxUses !== undefined) updateData.max_uses = coupon.maxUses
+    if (coupon.uses !== undefined) updateData.uses = coupon.uses
+    if (coupon.expiresAt !== undefined) updateData.expires_at = coupon.expiresAt
+    if (coupon.active !== undefined) updateData.active = coupon.active
 
-  const deleteRole = useCallback((id: string) => {
-    setRoles(prev => prev.filter(r => r.id !== id))
-  }, [])
+    const { error } = await supabase.from('coupons').update(updateData).eq('id', id)
+    if (!error) await refreshCoupons()
+    return !error
+  }, [refreshCoupons])
+
+  const deleteCoupon = useCallback(async (id: string) => {
+    const { error } = await supabase.from('coupons').delete().eq('id', id)
+    if (!error) await refreshCoupons()
+    return !error
+  }, [refreshCoupons])
+
+  const addBanner = useCallback(async (banner: Omit<Banner, 'id' | 'createdAt'>) => {
+    const { error } = await supabase.from('banners').insert({
+      title: banner.title,
+      image: banner.image,
+      link: banner.link,
+      position: banner.position,
+      active: banner.active,
+    })
+    if (!error) await refreshBanners()
+    return !error
+  }, [refreshBanners])
+
+  const updateBanner = useCallback(async (id: string, banner: Partial<Banner>) => {
+    const updateData: any = {}
+    if (banner.title !== undefined) updateData.title = banner.title
+    if (banner.image !== undefined) updateData.image = banner.image
+    if (banner.link !== undefined) updateData.link = banner.link
+    if (banner.position !== undefined) updateData.position = banner.position
+    if (banner.active !== undefined) updateData.active = banner.active
+
+    const { error } = await supabase.from('banners').update(updateData).eq('id', id)
+    if (!error) await refreshBanners()
+    return !error
+  }, [refreshBanners])
+
+  const deleteBanner = useCallback(async (id: string) => {
+    const { error } = await supabase.from('banners').delete().eq('id', id)
+    if (!error) await refreshBanners()
+    return !error
+  }, [refreshBanners])
+
+  const addRole = useCallback(async (role: Omit<Role, 'id'>) => {
+    const { error } = await supabase.from('roles').insert({
+      name: role.name,
+      color: role.color,
+      permissions: role.permissions,
+    })
+    if (!error) await refreshRoles()
+    return !error
+  }, [refreshRoles])
+
+  const updateRole = useCallback(async (id: string, role: Partial<Role>) => {
+    const updateData: any = {}
+    if (role.name !== undefined) updateData.name = role.name
+    if (role.color !== undefined) updateData.color = role.color
+    if (role.permissions !== undefined) updateData.permissions = role.permissions
+
+    const { error } = await supabase.from('roles').update(updateData).eq('id', id)
+    if (!error) await refreshRoles()
+    return !error
+  }, [refreshRoles])
+
+  const deleteRole = useCallback(async (id: string) => {
+    const { error } = await supabase.from('roles').delete().eq('id', id)
+    if (!error) await refreshRoles()
+    return !error
+  }, [refreshRoles])
 
   return (
     <AdminContext.Provider
       value={{
-        orders, coupons, customers, activities, banners, roles, adminProducts,
-        addProduct, updateProduct, deleteProduct,
-        addOrder, updateOrderStatus,
-        addCoupon, updateCoupon, deleteCoupon,
-        addCustomer, addActivity,
-        addBanner, updateBanner, deleteBanner,
-        addRole, updateRole, deleteRole,
+        products,
+        collections: [],
+        orders,
+        coupons,
+        customers,
+        activities,
+        banners,
+        roles,
+        isLoading,
+        refreshProducts,
+        refreshCollections: async () => {},
+        refreshOrders,
+        refreshCoupons,
+        refreshCustomers,
+        refreshBanners,
+        refreshRoles,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        addOrder,
+        updateOrderStatus,
+        addCoupon,
+        updateCoupon,
+        deleteCoupon,
+        addBanner,
+        updateBanner,
+        deleteBanner,
+        addRole,
+        updateRole,
+        deleteRole,
+        uploadImage,
       }}
     >
       {children}

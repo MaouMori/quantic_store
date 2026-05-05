@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { supabase } from '../lib/supabase'
 
 export interface User {
   id: string
@@ -14,68 +15,117 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isAdmin: boolean
-  login: (email: string, password: string) => boolean
-  logout: () => void
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
+  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
 }
-
-const defaultUsers: User[] = [
-  {
-    id: '1',
-    name: 'Admin',
-    email: 'admin@quantic.store',
-    avatar: '/avatars/admin.jpg',
-    role: 'Administrador',
-    roleColor: '#ff2d95',
-    permissions: ['all'],
-  },
-  {
-    id: '2',
-    name: 'Moderador',
-    email: 'mod@quantic.store',
-    avatar: '/avatars/mod.jpg',
-    role: 'Moderador',
-    roleColor: '#b347d9',
-    permissions: ['products', 'orders', 'users', 'content'],
-  },
-  {
-    id: '3',
-    name: 'Suporte',
-    email: 'suporte@quantic.store',
-    avatar: '/avatars/suporte.jpg',
-    role: 'Suporte',
-    roleColor: '#4488ff',
-    permissions: ['orders', 'users'],
-  },
-]
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('quantic_user')
-    return saved ? JSON.parse(saved) : null
-  })
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const login = useCallback((email: string, password: string) => {
-    const found = defaultUsers.find(u => u.email === email)
-    if (found && password === '123456') {
-      setUser(found)
-      localStorage.setItem('quantic_user', JSON.stringify(found))
-      return true
-    }
-    return false
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error || !data) return null
+
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      avatar: data.avatar || '/avatars/default.jpg',
+      role: data.role || 'Cliente',
+      roleColor: data.role_color || '#ff2d95',
+      permissions: data.permissions || [],
+    } as User
   }, [])
 
-  const logout = useCallback(() => {
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        setUser(profile)
+      }
+      setIsLoading(false)
+    }
+
+    initAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id)
+          setUser(profile)
+        } else {
+          setUser(null)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [fetchProfile])
+
+  const signUp = useCallback(async (email: string, password: string, name: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+      },
+    })
+
+    if (error) return { success: false, error: error.message }
+
+    if (data.user) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        name,
+        email,
+        role: 'Cliente',
+        role_color: '#ff2d95',
+        permissions: [],
+      })
+    }
+
+    return { success: true }
+  }, [])
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) return { success: false, error: error.message }
+
+    if (data.user) {
+      const profile = await fetchProfile(data.user.id)
+      setUser(profile)
+    }
+
+    return { success: true }
+  }, [fetchProfile])
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut()
     setUser(null)
-    localStorage.removeItem('quantic_user')
   }, [])
 
   const isAdmin = user?.role === 'Administrador'
   const isAuthenticated = !!user
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated, isAdmin, isLoading, login, logout, signUp }}
+    >
       {children}
     </AuthContext.Provider>
   )

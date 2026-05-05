@@ -12,20 +12,20 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    setTimeout(() => {
-      const success = login(email, password)
-      if (success) {
-        navigate('/admin')
-      } else {
-        setError('Email ou senha incorretos.')
-      }
-      setLoading(false)
-    }, 500)
+    const result = await login(email, password)
+
+    if (result.success) {
+      navigate('/admin')
+    } else {
+      setError(result.error || 'Email ou senha incorretos.')
+    }
+
+    setLoading(false)
   }
 
   return (
@@ -96,14 +96,12 @@ export default function Login() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-neon-pink/10">
-            <p className="text-text-dim text-xs text-center">
-              Contas de demo:
+            <p className="text-text-dim text-xs text-center mb-2">
+              Configure as variaveis de ambiente do Supabase para ativar o login real.
             </p>
-            <div className="mt-2 space-y-1 text-center">
-              <p className="text-text-dim text-[10px]">admin@quantic.store / 123456</p>
-              <p className="text-text-dim text-[10px]">mod@quantic.store / 123456</p>
-              <p className="text-text-dim text-[10px]">suporte@quantic.store / 123456</p>
-            </div>
+            <p className="text-text-dim text-[10px] text-center">
+              VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+            </p>
           </div>
         </div>
       </div>
