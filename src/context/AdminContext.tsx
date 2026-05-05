@@ -67,6 +67,11 @@ export interface Role {
   permissions: string[]
 }
 
+export interface AdminActionResult {
+  success: boolean
+  error?: string
+}
+
 export interface AdminContextType {
   products: Product[]
   collections: Product[]
@@ -84,20 +89,20 @@ export interface AdminContextType {
   refreshCustomers: () => Promise<void>
   refreshBanners: () => Promise<void>
   refreshRoles: () => Promise<void>
-  addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>
-  updateProduct: (id: number, product: Partial<Product>) => Promise<boolean>
-  deleteProduct: (id: number) => Promise<boolean>
-  addOrder: (order: Omit<Order, 'id'>) => Promise<boolean>
-  updateOrderStatus: (id: string, status: Order['status']) => Promise<boolean>
-  addCoupon: (coupon: Omit<Coupon, 'id' | 'uses'>) => Promise<boolean>
-  updateCoupon: (id: string, coupon: Partial<Coupon>) => Promise<boolean>
-  deleteCoupon: (id: string) => Promise<boolean>
-  addBanner: (banner: Omit<Banner, 'id' | 'createdAt'>) => Promise<boolean>
-  updateBanner: (id: string, banner: Partial<Banner>) => Promise<boolean>
-  deleteBanner: (id: string) => Promise<boolean>
-  addRole: (role: Omit<Role, 'id'>) => Promise<boolean>
-  updateRole: (id: string, role: Partial<Role>) => Promise<boolean>
-  deleteRole: (id: string) => Promise<boolean>
+  addProduct: (product: Omit<Product, 'id'>) => Promise<AdminActionResult>
+  updateProduct: (id: number, product: Partial<Product>) => Promise<AdminActionResult>
+  deleteProduct: (id: number) => Promise<AdminActionResult>
+  addOrder: (order: Omit<Order, 'id'>) => Promise<AdminActionResult>
+  updateOrderStatus: (id: string, status: Order['status']) => Promise<AdminActionResult>
+  addCoupon: (coupon: Omit<Coupon, 'id' | 'uses'>) => Promise<AdminActionResult>
+  updateCoupon: (id: string, coupon: Partial<Coupon>) => Promise<AdminActionResult>
+  deleteCoupon: (id: string) => Promise<AdminActionResult>
+  addBanner: (banner: Omit<Banner, 'id' | 'createdAt'>) => Promise<AdminActionResult>
+  updateBanner: (id: string, banner: Partial<Banner>) => Promise<AdminActionResult>
+  deleteBanner: (id: string) => Promise<AdminActionResult>
+  addRole: (role: Omit<Role, 'id'>) => Promise<AdminActionResult>
+  updateRole: (id: string, role: Partial<Role>) => Promise<AdminActionResult>
+  deleteRole: (id: string) => Promise<AdminActionResult>
   uploadImage: (file: File, path: string) => Promise<string | null>
 }
 
@@ -108,6 +113,18 @@ type CouponRow = Tables['coupons']
 type BannerRow = Tables['banners']
 type RoleRow = Tables['roles']
 type CustomerRow = Tables['customers']
+
+const notConfigured = (): AdminActionResult => ({
+  success: false,
+  error: 'Supabase nao configurado. Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.',
+})
+
+const ok = (): AdminActionResult => ({ success: true })
+
+const fail = (message?: string): AdminActionResult => ({
+  success: false,
+  error: message || 'Operacao nao concluida no Supabase.',
+})
 
 function mapDbProduct(row: ProductRow): Product {
   return {
@@ -296,7 +313,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('products').insert({
       name: product.name,
       price: product.price,
@@ -312,12 +329,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       in_game_images: product.inGameImages || [],
       specs: product.specs || [],
     })
-    if (!error) await refreshProducts()
-    return !error
+    if (error) return fail(error.message)
+    await refreshProducts()
+    return ok()
   }, [refreshProducts])
 
   const updateProduct = useCallback(async (id: number, product: Partial<Product>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const updateData: Partial<ProductRow> = {}
     if (product.name !== undefined) updateData.name = product.name
     if (product.price !== undefined) updateData.price = product.price
@@ -334,20 +352,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (product.specs !== undefined) updateData.specs = product.specs
 
     const { error } = await supabase.from('products').update(updateData).eq('id', id)
-    if (!error) await refreshProducts()
-    return !error
+    if (error) return fail(error.message)
+    await refreshProducts()
+    return ok()
   }, [refreshProducts])
 
   const deleteProduct = useCallback(async (id: number) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('products').delete().eq('id', id)
-    if (!error) await refreshProducts()
-    return !error
+    if (error) return fail(error.message)
+    await refreshProducts()
+    return ok()
   }, [refreshProducts])
 
   const addOrder = useCallback(async (order: Omit<Order, 'id'>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('orders').insert({
+      id: crypto.randomUUID(),
       customer_name: order.customer,
       customer_avatar: order.customerAvatar,
       status: order.status,
@@ -359,20 +380,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         quantity: i.quantity,
       })),
     })
-    if (!error) await refreshOrders()
-    return !error
+    if (error) return fail(error.message)
+    await refreshOrders()
+    return ok()
   }, [refreshOrders])
 
   const updateOrderStatus = useCallback(async (id: string, status: Order['status']) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('orders').update({ status }).eq('id', id)
-    if (!error) await refreshOrders()
-    return !error
+    if (error) return fail(error.message)
+    await refreshOrders()
+    return ok()
   }, [refreshOrders])
 
   const addCoupon = useCallback(async (coupon: Omit<Coupon, 'id' | 'uses'>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('coupons').insert({
+      id: crypto.randomUUID(),
       code: coupon.code,
       discount: coupon.discount,
       type: coupon.type,
@@ -382,12 +406,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       expires_at: coupon.expiresAt,
       active: coupon.active,
     })
-    if (!error) await refreshCoupons()
-    return !error
+    if (error) return fail(error.message)
+    await refreshCoupons()
+    return ok()
   }, [refreshCoupons])
 
   const updateCoupon = useCallback(async (id: string, coupon: Partial<Coupon>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const updateData: Partial<CouponRow> = {}
     if (coupon.code !== undefined) updateData.code = coupon.code
     if (coupon.discount !== undefined) updateData.discount = coupon.discount
@@ -399,32 +424,36 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (coupon.active !== undefined) updateData.active = coupon.active
 
     const { error } = await supabase.from('coupons').update(updateData).eq('id', id)
-    if (!error) await refreshCoupons()
-    return !error
+    if (error) return fail(error.message)
+    await refreshCoupons()
+    return ok()
   }, [refreshCoupons])
 
   const deleteCoupon = useCallback(async (id: string) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('coupons').delete().eq('id', id)
-    if (!error) await refreshCoupons()
-    return !error
+    if (error) return fail(error.message)
+    await refreshCoupons()
+    return ok()
   }, [refreshCoupons])
 
   const addBanner = useCallback(async (banner: Omit<Banner, 'id' | 'createdAt'>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('banners').insert({
+      id: crypto.randomUUID(),
       title: banner.title,
       image: banner.image,
       link: banner.link,
       position: banner.position,
       active: banner.active,
     })
-    if (!error) await refreshBanners()
-    return !error
+    if (error) return fail(error.message)
+    await refreshBanners()
+    return ok()
   }, [refreshBanners])
 
   const updateBanner = useCallback(async (id: string, banner: Partial<Banner>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const updateData: Partial<BannerRow> = {}
     if (banner.title !== undefined) updateData.title = banner.title
     if (banner.image !== undefined) updateData.image = banner.image
@@ -433,45 +462,51 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (banner.active !== undefined) updateData.active = banner.active
 
     const { error } = await supabase.from('banners').update(updateData).eq('id', id)
-    if (!error) await refreshBanners()
-    return !error
+    if (error) return fail(error.message)
+    await refreshBanners()
+    return ok()
   }, [refreshBanners])
 
   const deleteBanner = useCallback(async (id: string) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('banners').delete().eq('id', id)
-    if (!error) await refreshBanners()
-    return !error
+    if (error) return fail(error.message)
+    await refreshBanners()
+    return ok()
   }, [refreshBanners])
 
   const addRole = useCallback(async (role: Omit<Role, 'id'>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('roles').insert({
+      id: crypto.randomUUID(),
       name: role.name,
       color: role.color,
       permissions: role.permissions,
     })
-    if (!error) await refreshRoles()
-    return !error
+    if (error) return fail(error.message)
+    await refreshRoles()
+    return ok()
   }, [refreshRoles])
 
   const updateRole = useCallback(async (id: string, role: Partial<Role>) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const updateData: Partial<RoleRow> = {}
     if (role.name !== undefined) updateData.name = role.name
     if (role.color !== undefined) updateData.color = role.color
     if (role.permissions !== undefined) updateData.permissions = role.permissions
 
     const { error } = await supabase.from('roles').update(updateData).eq('id', id)
-    if (!error) await refreshRoles()
-    return !error
+    if (error) return fail(error.message)
+    await refreshRoles()
+    return ok()
   }, [refreshRoles])
 
   const deleteRole = useCallback(async (id: string) => {
-    if (!isSupabaseConfigured()) return false
+    if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('roles').delete().eq('id', id)
-    if (!error) await refreshRoles()
-    return !error
+    if (error) return fail(error.message)
+    await refreshRoles()
+    return ok()
   }, [refreshRoles])
 
   return (

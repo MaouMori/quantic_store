@@ -11,12 +11,13 @@ import {
   Truck,
   Shield,
 } from 'lucide-react'
-import { getProductById, getRelatedProducts } from '../data/storeData'
+import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
 
 export default function Produto() {
   const { id } = useParams<{ id: string }>()
-  const product = getProductById(Number(id))
+  const { products } = useAdmin()
+  const product = products.find(p => p.id === Number(id))
   const { addItem } = useCart()
 
   const [selectedImage, setSelectedImage] = useState(0)
@@ -39,7 +40,9 @@ export default function Produto() {
     )
   }
 
-  const related = getRelatedProducts(product)
+  const related = products
+    .filter(p => p.id !== product.id && p.category === product.category)
+    .slice(0, 4)
   const allImages = [...product.images, ...(product.inGameImages || [])]
 
   const handleAddToCart = () => {

@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ShoppingCart, Heart, Sparkles } from 'lucide-react'
-import { products } from '../data/storeData'
+import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
 
 export default function BestSellers() {
+  const { products } = useAdmin()
   const [startIndex, setStartIndex] = useState(0)
   const [liked, setLiked] = useState<Set<number>>(new Set())
   const { addItem } = useCart()
@@ -51,7 +52,9 @@ export default function BestSellers() {
           </button>
         </div>
 
-        {/* Carousel */}
+        {bestsellers.length === 0 ? (
+          <p className="text-text-dim text-sm">Nenhum produto marcado como mais vendido no painel.</p>
+        ) : (
         <div className="relative">
           <button
             onClick={prev}
@@ -156,6 +159,7 @@ export default function BestSellers() {
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
+        )}
       </div>
     </section>
   )

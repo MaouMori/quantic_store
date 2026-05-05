@@ -9,12 +9,15 @@ import {
   X,
   Search,
 } from 'lucide-react'
-import { products, categories, styles, colors } from '../data/storeData'
+import { categories, styles, colors } from '../data/storeData'
+import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
 
 const ITEMS_PER_PAGE = 16
 
 export default function Loja() {
+  const { products, banners } = useAdmin()
+  const pageBanners = banners.filter(banner => banner.active && banner.position === 'loja')
   const [category, setCategory] = useState('todos')
   const [selectedStyles, setSelectedStyles] = useState<Set<string>>(new Set())
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())
@@ -105,7 +108,7 @@ export default function Loja() {
     }
 
     return result
-  }, [category, searchQuery, priceRange, onlyNew, selectedStyles, selectedColors, sortBy])
+  }, [category, products, searchQuery, priceRange, onlyNew, selectedStyles, selectedColors, sortBy])
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
   const paginated = filtered.slice(
@@ -124,6 +127,19 @@ export default function Loja() {
           Pecas exclusivas para voce expressar quem e, do seu jeito.
         </p>
       </div>
+
+      {pageBanners.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 mb-8">
+          {pageBanners.map(banner => (
+            <Link key={banner.id} to={banner.link || '/loja'} className="block rounded-xl overflow-hidden border border-neon-pink/10 bg-void-lighter">
+              <img src={banner.image} alt={banner.title} className="w-full max-h-72 object-cover" />
+              <div className="p-4">
+                <h2 className="font-heading font-bold text-text-main">{banner.title}</h2>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Filters */}

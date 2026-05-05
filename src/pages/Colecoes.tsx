@@ -1,7 +1,12 @@
 import { Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { collections } from '../data/storeData'
+import { useAdmin } from '../context/useAdmin'
 
 export default function Colecoes() {
+  const { banners } = useAdmin()
+  const pageBanners = banners.filter(banner => banner.active && banner.position === 'colecoes')
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
@@ -16,6 +21,19 @@ export default function Colecoes() {
           Cada colecao foi criada para expressar uma vibe unica. Escolha a sua e brilhe no FiveM.
         </p>
       </div>
+
+      {pageBanners.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 mb-8">
+          {pageBanners.map(banner => (
+            <Link key={banner.id} to={banner.link || '/colecoes'} className="block rounded-xl overflow-hidden border border-neon-pink/10 bg-void-lighter">
+              <img src={banner.image} alt={banner.title} className="w-full max-h-72 object-cover" />
+              <div className="p-4">
+                <h2 className="font-heading font-bold text-text-main">{banner.title}</h2>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {collections.map(collection => (

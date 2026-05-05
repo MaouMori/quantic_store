@@ -9,7 +9,8 @@ import {
   Upload,
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
-import type { Banner } from '../../context/AdminContext'
+import type { AdminActionResult, Banner } from '../../context/AdminContext'
+import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 export default function AdminBanners() {
   const { banners, addBanner, updateBanner, deleteBanner, uploadImage, refreshBanners } = useAdmin()
@@ -17,6 +18,7 @@ export default function AdminBanners() {
   const [editing, setEditing] = useState<Banner | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
     refreshBanners()
@@ -28,25 +30,35 @@ export default function AdminBanners() {
 
   const handleSave = async (banner: Banner) => {
     setIsSaving(true)
+    setFeedback(null)
+    let result: AdminActionResult = { success: false, error: 'Nenhuma operacao executada.' }
     if (isCreating) {
-      await addBanner({
+      result = await addBanner({
         title: banner.title,
         image: banner.image,
         link: banner.link,
         position: banner.position,
         active: banner.active,
       })
-      setIsCreating(false)
     } else if (editing) {
-      await updateBanner(banner.id, banner)
+      result = await updateBanner(banner.id, banner)
+    }
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Banner salvo com sucesso.' })
+      setIsCreating(false)
       setEditing(null)
+    } else {
+      setFeedback({ type: 'error', message: result.error || 'Nao foi possivel salvar o banner.' })
     }
     setIsSaving(false)
   }
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este banner?')) {
-      await deleteBanner(id)
+      const result = await deleteBanner(id)
+      setFeedback(result.success
+        ? { type: 'success', message: 'Banner excluido com sucesso.' }
+        : { type: 'error', message: result.error || 'Nao foi possivel excluir o banner.' })
     }
   }
 
@@ -65,6 +77,8 @@ export default function AdminBanners() {
           Novo banner
         </button>
       </div>
+
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
 
       <div className="review-card rounded-xl p-5">
         <div className="flex items-center gap-3 mb-4">

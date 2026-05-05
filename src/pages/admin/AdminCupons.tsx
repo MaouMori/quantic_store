@@ -8,7 +8,8 @@ import {
   Save,
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
-import type { Coupon } from '../../context/AdminContext'
+import type { AdminActionResult, Coupon } from '../../context/AdminContext'
+import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 export default function AdminCupons() {
   const { coupons, addCoupon, updateCoupon, deleteCoupon, refreshCoupons } = useAdmin()
@@ -17,6 +18,7 @@ export default function AdminCupons() {
   const [editing, setEditing] = useState<Coupon | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
     refreshCoupons()
@@ -35,8 +37,10 @@ export default function AdminCupons() {
 
   const handleSave = async (coupon: Coupon) => {
     setIsSaving(true)
+    setFeedback(null)
+    let result: AdminActionResult = { success: false, error: 'Nenhuma operacao executada.' }
     if (isCreating) {
-      await addCoupon({
+      result = await addCoupon({
         code: coupon.code,
         discount: coupon.discount,
         type: coupon.type,
@@ -45,17 +49,25 @@ export default function AdminCupons() {
         expiresAt: coupon.expiresAt,
         active: coupon.active,
       })
-      setIsCreating(false)
     } else if (editing) {
-      await updateCoupon(coupon.id, coupon)
+      result = await updateCoupon(coupon.id, coupon)
+    }
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Cupom salvo com sucesso.' })
+      setIsCreating(false)
       setEditing(null)
+    } else {
+      setFeedback({ type: 'error', message: result.error || 'Nao foi possivel salvar o cupom.' })
     }
     setIsSaving(false)
   }
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este cupom?')) {
-      await deleteCoupon(id)
+      const result = await deleteCoupon(id)
+      setFeedback(result.success
+        ? { type: 'success', message: 'Cupom excluido com sucesso.' }
+        : { type: 'error', message: result.error || 'Nao foi possivel excluir o cupom.' })
     }
   }
 
@@ -74,6 +86,8 @@ export default function AdminCupons() {
           Novo cupom
         </button>
       </div>
+
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
 
       <div className="review-card rounded-xl p-5">
         <div className="flex items-center gap-3 mb-4">

@@ -8,35 +8,50 @@ import {
   Save,
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
-import type { Role } from '../../context/AdminContext'
+import type { AdminActionResult, Role } from '../../context/AdminContext'
+import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 export default function AdminCargos() {
   const { roles, addRole, updateRole, deleteRole } = useAdmin()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Role | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const filtered = roles.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handleSave = (role: Role) => {
+  const handleSave = async (role: Role) => {
+    setIsSaving(true)
+    setFeedback(null)
+    let result: AdminActionResult = { success: false, error: 'Nenhuma operacao executada.' }
     if (isCreating) {
-      addRole({
+      result = await addRole({
         name: role.name,
         color: role.color,
         permissions: role.permissions,
       })
-      setIsCreating(false)
     } else if (editing) {
-      updateRole(role.id, role)
-      setEditing(null)
+      result = await updateRole(role.id, role)
     }
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Cargo salvo com sucesso.' })
+      setIsCreating(false)
+      setEditing(null)
+    } else {
+      setFeedback({ type: 'error', message: result.error || 'Nao foi possivel salvar o cargo.' })
+    }
+    setIsSaving(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este cargo?')) {
-      deleteRole(id)
+      const result = await deleteRole(id)
+      setFeedback(result.success
+        ? { type: 'success', message: 'Cargo excluido com sucesso.' }
+        : { type: 'error', message: result.error || 'Nao foi possivel excluir o cargo.' })
     }
   }
 
@@ -55,6 +70,8 @@ export default function AdminCargos() {
           Novo cargo
         </button>
       </div>
+
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
 
       <div className="review-card rounded-xl p-5">
         <div className="flex items-center gap-3 mb-4">
@@ -113,6 +130,7 @@ export default function AdminCargos() {
             setEditing(null)
             setIsCreating(false)
           }}
+          isSaving={isSaving}
         />
       )}
     </div>
@@ -123,10 +141,12 @@ function RoleModal({
   role,
   onSave,
   onClose,
+  isSaving,
 }: {
   role: Role | null
-  onSave: (r: Role) => void
+  onSave: (r: Role) => void | Promise<void>
   onClose: () => void
+  isSaving: boolean
 }) {
   const [form, setForm] = useState<Partial<Role>>(
     role || {
@@ -238,10 +258,11 @@ function RoleModal({
             </button>
             <button
               type="submit"
-              className="bg-neon-pink hover:bg-hot-pink text-white px-6 py-2 rounded-lg font-heading font-bold text-sm flex items-center gap-2 transition-all"
+              disabled={isSaving}
+              className="bg-neon-pink hover:bg-hot-pink disabled:opacity-50 text-white px-6 py-2 rounded-lg font-heading font-bold text-sm flex items-center gap-2 transition-all"
             >
               <Save className="w-4 h-4" />
-              Salvar
+              {isSaving ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </form>

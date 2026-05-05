@@ -1,24 +1,31 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
-import { heroSlides } from '../data/storeData'
+import { useAdmin } from '../context/useAdmin'
 
 export default function HeroSlider() {
+  const { banners } = useAdmin()
+  const heroSlides = banners.filter(banner => banner.active && banner.position === 'home')
   const [current, setCurrent] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
+  const activeIndex = Math.min(current, Math.max(0, heroSlides.length - 1))
 
   const nextSlide = useCallback(() => {
-    setCurrent(prev => (prev + 1) % heroSlides.length)
-  }, [])
+    setCurrent(prev => (heroSlides.length ? (prev + 1) % heroSlides.length : 0))
+  }, [heroSlides.length])
 
   const prevSlide = useCallback(() => {
-    setCurrent(prev => (prev - 1 + heroSlides.length) % heroSlides.length)
-  }, [])
+    setCurrent(prev => (heroSlides.length ? (prev - 1 + heroSlides.length) % heroSlides.length : 0))
+  }, [heroSlides.length])
 
   useEffect(() => {
     if (!isAutoPlaying) return
+    if (heroSlides.length <= 1) return
     const interval = setInterval(nextSlide, 5000)
     return () => clearInterval(interval)
-  }, [isAutoPlaying, nextSlide])
+  }, [heroSlides.length, isAutoPlaying, nextSlide])
+
+  if (heroSlides.length === 0) return null
 
   return (
     <section
@@ -31,7 +38,7 @@ export default function HeroSlider() {
         <div
           key={s.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === current ? 'opacity-100' : 'opacity-0'
+            index === activeIndex ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <img
@@ -61,7 +68,7 @@ export default function HeroSlider() {
       {heroSlides.map((s, index) => (
         <div
           key={s.id}
-          className={`hero-slide flex items-center z-20 ${index === current ? 'active' : ''}`}
+          className={`hero-slide flex items-center z-20 ${index === activeIndex ? 'active' : ''}`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="flex items-center">
@@ -71,23 +78,17 @@ export default function HeroSlider() {
                   <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-white leading-none tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                     {s.title}
                   </h1>
-                  <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-neon-pink leading-none tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-                    {s.title2}
-                  </h1>
-                  <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-neon-purple leading-none tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-                    {s.title3}
-                  </h1>
                 </div>
 
                 <p className="text-white/90 text-base sm:text-lg max-w-md leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
-                  {s.subtitle}
+                  Banner ativo no painel administrativo.
                 </p>
 
-                <button className="group relative inline-flex items-center gap-2 bg-neon-pink hover:bg-hot-pink text-white px-6 py-3 rounded-lg font-heading font-bold text-sm tracking-wider transition-all btn-shine shadow-lg shadow-neon-pink/30">
+                <Link to={s.link || '/loja'} className="group relative inline-flex items-center gap-2 bg-neon-pink hover:bg-hot-pink text-white px-6 py-3 rounded-lg font-heading font-bold text-sm tracking-wider transition-all btn-shine shadow-lg shadow-neon-pink/30">
                   <Sparkles className="w-4 h-4" />
-                  {s.cta}
+                  VER AGORA
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
               </div>
 
               {/* Right side is empty - the background image shows the characters */}
@@ -112,12 +113,12 @@ export default function HeroSlider() {
 
       {/* Dots */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-2">
-        {heroSlides.map((_, index) => (
+        {heroSlides.map((slide, index) => (
           <button
-            key={index}
+            key={slide.id}
             onClick={() => setCurrent(index)}
             className={`w-2.5 h-2.5 rounded-full transition-all ${
-              index === current
+              index === activeIndex
                 ? 'bg-neon-pink w-8'
                 : 'bg-white/50 hover:bg-white/80'
             }`}

@@ -13,7 +13,9 @@ import {
   Upload,
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
+import type { AdminActionResult } from '../../context/AdminContext'
 import type { Product } from '../../data/storeData'
+import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 export default function AdminProdutos() {
   const { products, addProduct, updateProduct, deleteProduct, uploadImage, refreshProducts } = useAdmin()
@@ -22,6 +24,7 @@ export default function AdminProdutos() {
   const [editing, setEditing] = useState<Product | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
     refreshProducts()
@@ -41,19 +44,29 @@ export default function AdminProdutos() {
 
   const handleSave = async (product: Product) => {
     setIsSaving(true)
+    setFeedback(null)
+    let result: AdminActionResult = { success: false, error: 'Nenhuma operacao executada.' }
     if (isCreating) {
-      await addProduct(product)
-      setIsCreating(false)
+      result = await addProduct(product)
     } else if (editing) {
-      await updateProduct(product.id, product)
+      result = await updateProduct(product.id, product)
+    }
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Produto salvo com sucesso.' })
+      setIsCreating(false)
       setEditing(null)
+    } else {
+      setFeedback({ type: 'error', message: result.error || 'Nao foi possivel salvar o produto.' })
     }
     setIsSaving(false)
   }
 
   const handleDelete = async (id: number) => {
     if (confirm('Tem certeza que deseja excluir este produto?')) {
-      await deleteProduct(id)
+      const result = await deleteProduct(id)
+      setFeedback(result.success
+        ? { type: 'success', message: 'Produto excluido com sucesso.' }
+        : { type: 'error', message: result.error || 'Nao foi possivel excluir o produto.' })
     }
   }
 
@@ -72,6 +85,8 @@ export default function AdminProdutos() {
           Novo produto
         </button>
       </div>
+
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
 
       <div className="review-card rounded-xl p-5">
         <div className="flex items-center gap-3 mb-4">

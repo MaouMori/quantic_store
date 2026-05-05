@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
 import type { Order } from '../../context/AdminContext'
+import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 const statusOptions = [
   { value: 'concluido', label: 'Concluido', color: 'bg-green-500/10 text-green-400' },
@@ -22,6 +23,7 @@ export default function AdminPedidos() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editing, setEditing] = useState<Order | null>(null)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const ITEMS_PER_PAGE = 10
 
@@ -38,8 +40,11 @@ export default function AdminPedidos() {
     currentPage * ITEMS_PER_PAGE
   )
 
-  const handleStatusChange = (id: string, status: Order['status']) => {
-    updateOrderStatus(id, status)
+  const handleStatusChange = async (id: string, status: Order['status']) => {
+    const result = await updateOrderStatus(id, status)
+    setFeedback(result.success
+      ? { type: 'success', message: 'Status do pedido atualizado.' }
+      : { type: 'error', message: result.error || 'Nao foi possivel atualizar o pedido.' })
   }
 
   return (
@@ -50,6 +55,8 @@ export default function AdminPedidos() {
           <p className="text-text-dim text-sm">Gerencie todos os pedidos</p>
         </div>
       </div>
+
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
 
       <div className="review-card rounded-xl p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
