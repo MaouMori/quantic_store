@@ -24,44 +24,47 @@ export default function Login() {
     setSuccess('')
     setLoading(true)
 
-    if (mode === 'login') {
-      const result = await login(normalizedEmail, password)
-      if (result.success) {
-        if (result.user?.role === 'Administrador') {
-          navigate('/admin')
+    try {
+      if (mode === 'login') {
+        const result = await login(normalizedEmail, password)
+        if (result.success) {
+          if (result.user?.role === 'Administrador') {
+            navigate('/admin')
+          } else {
+            await logout()
+            setError('Acesso restrito a administradores. Confirme se seu perfil esta com role Administrador no Supabase.')
+          }
         } else {
-          await logout()
-          setError('Acesso restrito a administradores.')
+          setError(result.error || 'Email ou senha incorretos.')
         }
-      } else {
-        setError(result.error || 'Email ou senha incorretos.')
+      } else if (mode === 'register') {
+        if (!name.trim()) {
+          setError('Digite seu nome.')
+          return
+        }
+        const result = await signUp(normalizedEmail, password, name)
+        if (result.success) {
+          setEmail(normalizedEmail)
+          setSuccess('Conta criada! Verifique seu email para confirmar. Depois, confirme que o perfil esta como Administrador no Supabase.')
+          setMode('login')
+        } else {
+          setError(result.error || 'Erro ao criar conta.')
+        }
+      } else if (mode === 'forgot') {
+        const { error } = await import('../../lib/supabase').then(m => m.supabase.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: `${window.location.origin}/admin/reset-password`,
+        }))
+        if (error) {
+          setError(getAuthErrorMessage(error.message))
+        } else {
+          setSuccess('Email de recuperacao enviado! Verifique sua caixa de entrada.')
+        }
       }
-    } else if (mode === 'register') {
-      if (!name.trim()) {
-        setError('Digite seu nome.')
-        setLoading(false)
-        return
-      }
-      const result = await signUp(normalizedEmail, password, name)
-      if (result.success) {
-        setEmail(normalizedEmail)
-        setSuccess('Conta criada! Verifique seu email para confirmar. Depois, confirme que o perfil esta como Administrador no Supabase.')
-        setMode('login')
-      } else {
-        setError(result.error || 'Erro ao criar conta.')
-      }
-    } else if (mode === 'forgot') {
-      const { error } = await import('../../lib/supabase').then(m => m.supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: `${window.location.origin}/admin/reset-password`,
-      }))
-      if (error) {
-        setError(getAuthErrorMessage(error.message))
-      } else {
-        setSuccess('Email de recuperacao enviado! Verifique sua caixa de entrada.')
-      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao processar login.')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (

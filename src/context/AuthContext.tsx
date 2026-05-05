@@ -41,6 +41,19 @@ const isSupabaseConfigured = () => {
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase()
 
+const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: number | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs)
+  })
+
+  try {
+    return await Promise.race([Promise.resolve(promise), timeout])
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId)
+  }
+}
+
 const getAuthUserName = (authUser: SupabaseUser) => {
   const metadataName = authUser.user_metadata?.name
   if (typeof metadataName === 'string' && metadataName.trim()) return metadataName
@@ -76,11 +89,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured())
 
   const fetchProfile = useCallback(async (authUser: SupabaseUser) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .maybeSingle<ProfileRow>()
+    const { data, error } = await withTimeout(
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle<ProfileRow>(),
+      8000,
+      'Tempo esgotado ao carregar o perfil do usuario.'
+    )
 
     if (error) {
       console.warn('Erro ao buscar perfil do usuario:', error.message)
@@ -88,27 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data) return mapProfileToUser(data, authUser)
-
-    const fallbackUser = buildFallbackUser(authUser)
-    const { data: createdProfile, error: createError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: authUser.id,
-        name: fallbackUser.name,
-        email: fallbackUser.email,
-        role: fallbackUser.role,
-        role_color: fallbackUser.roleColor,
-        permissions: fallbackUser.permissions,
-      }, { onConflict: 'id' })
-      .select('*')
-      .maybeSingle<ProfileRow>()
-
-    if (createError) {
-      console.warn('Erro ao criar perfil do usuario:', createError.message)
-      return fallbackUser
-    }
-
-    return createdProfile ? mapProfileToUser(createdProfile, authUser) : fallbackUser
+    return buildFallbackUser(authUser)
   }, [])
 
   useEffect(() => {
@@ -118,7 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          'Tempo esgotado ao recuperar a sessao.'
+        )
         if (session?.user) {
           const profile = await fetchProfile(session.user)
           setUser(profile)
@@ -132,13 +133,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          const profile = await fetchProfile(session.user)
-          setUser(profile)
-        } else {
-          setUser(null)
-        }
+      (_event, session) => {
+        window.setTimeout(() => {
+          void (async () => {
+            if (session?.user) {
+              const profile = await fetchProfile(session.user)
+              setUser(profile)
+            } else {
+              setUser(null)
+            }
+          })()
+        }, 0)
       }
     )
 
@@ -190,10 +195,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedEmail = normalizeEmail(email)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      })
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        }),
+        10000,
+        'Tempo esgotado ao entrar. Verifique sua conexao e tente novamente.'
+      )
 
       if (error) return { success: false, error: getAuthErrorMessage(error.message) }
 
