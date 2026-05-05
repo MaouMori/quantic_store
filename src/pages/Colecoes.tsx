@@ -1,11 +1,18 @@
-import { Sparkles } from 'lucide-react'
+import { ShoppingCart, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { collections } from '../data/storeData'
 import { useAdmin } from '../context/useAdmin'
+import { useCart } from '../context/useCart'
+
+const getFinalPrice = (price: number, discountPercent = 0) => {
+  const safeDiscount = Math.min(100, Math.max(0, discountPercent))
+  return Number((price * (1 - safeDiscount / 100)).toFixed(2))
+}
 
 export default function Colecoes() {
-  const { banners } = useAdmin()
+  const { banners, storeCollections, products } = useAdmin()
+  const { addItem } = useCart()
   const pageBanners = banners.filter(banner => banner.active && banner.position === 'colecoes')
+  const collections = storeCollections.filter(collection => collection.active)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -36,10 +43,15 @@ export default function Colecoes() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {collections.map(collection => (
+        {collections.map(collection => {
+          const collectionProducts = products.filter(product =>
+            product.collectionId === collection.id || collection.productIds.includes(product.id)
+          )
+          const finalPrice = getFinalPrice(collection.price, collection.discountPercent)
+          return (
           <div
             key={collection.id}
-            className="collection-card rounded-2xl overflow-hidden cursor-pointer group border"
+            className="collection-card rounded-2xl overflow-hidden group border"
             style={{
               borderColor: collection.color + '20',
             }}
@@ -74,6 +86,41 @@ export default function Colecoes() {
                 <p className="text-text-muted text-base mt-2 max-w-md">
                   {collection.subtitle}
                 </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <span className="text-neon-pink font-heading font-bold text-xl">
+                    R$ {finalPrice.toFixed(2).replace('.', ',')}
+                  </span>
+                  {collection.discountPercent > 0 && (
+                    <>
+                      <span className="text-text-dim text-sm line-through">
+                        R$ {collection.price.toFixed(2).replace('.', ',')}
+                      </span>
+                      <span className="bg-neon-pink/10 text-neon-pink text-xs font-bold px-2 py-0.5 rounded">
+                        -{collection.discountPercent}%
+                      </span>
+                    </>
+                  )}
+                </div>
+                {collectionProducts.length > 0 && (
+                  <p className="text-text-dim text-xs mt-3">
+                    {collectionProducts.length} produto{collectionProducts.length > 1 ? 's' : ''}: {collectionProducts.map(product => product.name).slice(0, 3).join(', ')}
+                    {collectionProducts.length > 3 ? '...' : ''}
+                  </p>
+                )}
+                <button
+                  onClick={() =>
+                    addItem({
+                      id: -collection.id,
+                      name: `Colecao ${collection.name}`,
+                      price: finalPrice,
+                      image: collection.image,
+                    })
+                  }
+                  className="mt-4 w-fit bg-neon-pink hover:bg-hot-pink text-white px-4 py-2 rounded-lg font-heading font-bold text-sm tracking-wider transition-all flex items-center gap-2"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  COMPRAR COLECAO
+                </button>
               </div>
 
               <div
@@ -86,8 +133,12 @@ export default function Colecoes() {
               />
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
+      {collections.length === 0 && (
+        <p className="text-text-dim text-center text-sm">Nenhuma colecao ativa cadastrada no painel.</p>
+      )}
     </div>
   )
 }

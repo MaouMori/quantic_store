@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CreditCard, History, ClipboardList, Settings, MessageSquare, FileText, FolderTree, Tag, Lock, UserCog } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { CreditCard, History, ClipboardList, Settings, MessageSquare, FileText, FolderTree, Tag, Lock, UserCog, Plus, Trash2 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
 import { AdminFeedback } from '../../components/admin/AdminFeedback'
 import { supabase } from '../../lib/supabase'
@@ -62,30 +63,152 @@ export default function AdminClientes() {
 }
 
 export function AdminCategorias() {
+  const {
+    productCategories,
+    productStyles,
+    productColors,
+    addProductCategory,
+    deleteProductCategory,
+    addProductStyle,
+    deleteProductStyle,
+    addProductColor,
+    deleteProductColor,
+  } = useAdmin()
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const slugify = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+
+  const handleAdd = async (type: 'category' | 'style' | 'color', name: string, hex?: string) => {
+    const slug = slugify(name)
+    if (!name.trim() || !slug) return
+    const result =
+      type === 'category'
+        ? await addProductCategory({ name: name.trim(), slug, active: true })
+        : type === 'style'
+          ? await addProductStyle({ name: name.trim(), slug, active: true })
+          : await addProductColor({ name: name.trim(), slug, hex: hex || '#ff2d95', active: true })
+    setFeedback(result.success
+      ? { type: 'success', message: 'Item salvo com sucesso.' }
+      : { type: 'error', message: result.error || 'Nao foi possivel salvar.' })
+  }
+
+  const handleDelete = async (type: 'category' | 'style' | 'color', id: string) => {
+    const result =
+      type === 'category'
+        ? await deleteProductCategory(id)
+        : type === 'style'
+          ? await deleteProductStyle(id)
+          : await deleteProductColor(id)
+    setFeedback(result.success
+      ? { type: 'success', message: 'Item excluido com sucesso.' }
+      : { type: 'error', message: result.error || 'Nao foi possivel excluir.' })
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-xl text-text-main">Categorias</h1>
-        <p className="text-text-dim text-sm">Gerencie categorias de produtos</p>
+        <p className="text-text-dim text-sm">Gerencie categorias, estilos e cores usadas nos produtos</p>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <FolderTree className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Gerenciamento de categorias em desenvolvimento.</p>
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <TaxonomyPanel
+          title="Categorias"
+          icon={<FolderTree className="w-5 h-5 text-neon-pink" />}
+          items={productCategories}
+          onAdd={name => handleAdd('category', name)}
+          onDelete={id => handleDelete('category', id)}
+        />
+        <TaxonomyPanel
+          title="Estilos"
+          icon={<Tag className="w-5 h-5 text-neon-pink" />}
+          items={productStyles}
+          onAdd={name => handleAdd('style', name)}
+          onDelete={id => handleDelete('style', id)}
+        />
+        <TaxonomyPanel
+          title="Cores"
+          icon={<Tag className="w-5 h-5 text-neon-pink" />}
+          items={productColors}
+          withColor
+          onAdd={(name, hex) => handleAdd('color', name, hex)}
+          onDelete={id => handleDelete('color', id)}
+        />
       </div>
     </div>
   )
 }
 
 export function AdminTags() {
+  return <AdminCategorias />
+}
+
+function TaxonomyPanel({
+  title,
+  icon,
+  items,
+  withColor = false,
+  onAdd,
+  onDelete,
+}: {
+  title: string
+  icon: ReactNode
+  items: { id: string; name: string; slug: string; active: boolean; hex?: string }[]
+  withColor?: boolean
+  onAdd: (name: string, hex?: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [name, setName] = useState('')
+  const [hex, setHex] = useState('#ff2d95')
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-heading font-bold text-xl text-text-main">Tags</h1>
-        <p className="text-text-dim text-sm">Gerencie tags de produtos</p>
+    <div className="review-card rounded-xl p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="font-heading font-bold text-text-main">{title}</h2>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <Tag className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Gerenciamento de tags em desenvolvimento.</p>
+      <div className="flex gap-2">
+        {withColor && (
+          <input type="color" value={hex} onChange={event => setHex(event.target.value)}
+            className="w-11 h-10 bg-void-light border border-neon-pink/20 rounded-lg px-1 py-1" />
+        )}
+        <input
+          value={name}
+          onChange={event => setName(event.target.value)}
+          placeholder={`Nova ${title.toLowerCase()}`}
+          className="min-w-0 flex-1 bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 text-sm"
+        />
+        <button
+          onClick={() => {
+            onAdd(name, hex)
+            setName('')
+          }}
+          className="w-10 h-10 rounded-lg bg-neon-pink text-white flex items-center justify-center"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="space-y-2">
+        {items.map(item => (
+          <div key={item.id} className="flex items-center gap-2 rounded-lg bg-void-light border border-neon-pink/10 px-3 py-2">
+            {item.hex && <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: item.hex }} />}
+            <div className="flex-1 min-w-0">
+              <p className="text-text-main text-sm truncate">{item.name}</p>
+              <p className="text-text-dim text-[10px] truncate">{item.slug}</p>
+            </div>
+            <button onClick={() => onDelete(item.id)} className="text-text-dim hover:text-red-400">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-text-dim text-sm">Nenhum item cadastrado.</p>}
       </div>
     </div>
   )

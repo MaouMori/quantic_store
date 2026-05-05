@@ -68,6 +68,41 @@ export interface Role {
   permissions: string[]
 }
 
+export interface StoreCollection {
+  id: number
+  name: string
+  subtitle: string
+  image: string
+  color: string
+  price: number
+  discountPercent: number
+  active: boolean
+  productIds: number[]
+  createdAt?: string
+}
+
+export interface ProductCategory {
+  id: string
+  name: string
+  slug: string
+  active: boolean
+}
+
+export interface ProductStyle {
+  id: string
+  name: string
+  slug: string
+  active: boolean
+}
+
+export interface ProductColor {
+  id: string
+  name: string
+  slug: string
+  hex: string
+  active: boolean
+}
+
 export interface AdminActionResult {
   success: boolean
   error?: string
@@ -82,6 +117,10 @@ export interface AdminContextType {
   activities: Activity[]
   banners: Banner[]
   roles: Role[]
+  storeCollections: StoreCollection[]
+  productCategories: ProductCategory[]
+  productStyles: ProductStyle[]
+  productColors: ProductColor[]
   isLoading: boolean
   refreshProducts: () => Promise<void>
   refreshCollections: () => Promise<void>
@@ -90,6 +129,10 @@ export interface AdminContextType {
   refreshCustomers: () => Promise<void>
   refreshBanners: () => Promise<void>
   refreshRoles: () => Promise<void>
+  refreshStoreCollections: () => Promise<void>
+  refreshProductCategories: () => Promise<void>
+  refreshProductStyles: () => Promise<void>
+  refreshProductColors: () => Promise<void>
   addProduct: (product: Omit<Product, 'id'>) => Promise<AdminActionResult>
   updateProduct: (id: number, product: Partial<Product>) => Promise<AdminActionResult>
   deleteProduct: (id: number) => Promise<AdminActionResult>
@@ -104,6 +147,18 @@ export interface AdminContextType {
   addRole: (role: Omit<Role, 'id'>) => Promise<AdminActionResult>
   updateRole: (id: string, role: Partial<Role>) => Promise<AdminActionResult>
   deleteRole: (id: string) => Promise<AdminActionResult>
+  addStoreCollection: (collection: Omit<StoreCollection, 'id' | 'createdAt'>) => Promise<AdminActionResult>
+  updateStoreCollection: (id: number, collection: Partial<StoreCollection>) => Promise<AdminActionResult>
+  deleteStoreCollection: (id: number) => Promise<AdminActionResult>
+  addProductCategory: (category: Omit<ProductCategory, 'id'>) => Promise<AdminActionResult>
+  updateProductCategory: (id: string, category: Partial<ProductCategory>) => Promise<AdminActionResult>
+  deleteProductCategory: (id: string) => Promise<AdminActionResult>
+  addProductStyle: (style: Omit<ProductStyle, 'id'>) => Promise<AdminActionResult>
+  updateProductStyle: (id: string, style: Partial<ProductStyle>) => Promise<AdminActionResult>
+  deleteProductStyle: (id: string) => Promise<AdminActionResult>
+  addProductColor: (color: Omit<ProductColor, 'id'>) => Promise<AdminActionResult>
+  updateProductColor: (id: string, color: Partial<ProductColor>) => Promise<AdminActionResult>
+  deleteProductColor: (id: string) => Promise<AdminActionResult>
   uploadImage: (file: File, path: string) => Promise<string | null>
 }
 
@@ -114,6 +169,10 @@ type CouponRow = Tables['coupons']
 type BannerRow = Tables['banners']
 type RoleRow = Tables['roles']
 type CustomerRow = Tables['customers']
+type StoreCollectionRow = Tables['collections']
+type ProductCategoryRow = Tables['product_categories']
+type ProductStyleRow = Tables['product_styles']
+type ProductColorRow = Tables['product_colors']
 
 const notConfigured = (): AdminActionResult => ({
   success: false,
@@ -143,6 +202,8 @@ function mapDbProduct(row: ProductRow): Product {
     discountPercent: row.discount_percent || 0,
     rating: row.rating || 0,
     ratingCount: row.rating_count || 0,
+    collectionId: row.collection_id || null,
+    sellIndividually: row.sell_individually ?? true,
     description: row.description,
     inGameImages: row.in_game_images || [],
     specs: row.specs || [],
@@ -215,6 +276,33 @@ function mapDbCustomer(row: CustomerRow): Customer {
   }
 }
 
+function mapDbStoreCollection(row: StoreCollectionRow): StoreCollection {
+  return {
+    id: row.id,
+    name: row.name,
+    subtitle: row.subtitle,
+    image: row.image,
+    color: row.color,
+    price: row.price || 0,
+    discountPercent: row.discount_percent || 0,
+    active: row.active ?? true,
+    productIds: row.product_ids || [],
+    createdAt: row.created_at,
+  }
+}
+
+function mapDbProductCategory(row: ProductCategoryRow): ProductCategory {
+  return { id: row.id, name: row.name, slug: row.slug, active: row.active }
+}
+
+function mapDbProductStyle(row: ProductStyleRow): ProductStyle {
+  return { id: row.id, name: row.name, slug: row.slug, active: row.active }
+}
+
+function mapDbProductColor(row: ProductColorRow): ProductColor {
+  return { id: row.id, name: row.name, slug: row.slug, hex: row.hex, active: row.active }
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
@@ -222,6 +310,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
   const [roles, setRoles] = useState<Role[]>([])
+  const [storeCollections, setStoreCollections] = useState<StoreCollection[]>([])
+  const [productCategories, setProductCategories] = useState<ProductCategory[]>([])
+  const [productStyles, setProductStyles] = useState<ProductStyle[]>([])
+  const [productColors, setProductColors] = useState<ProductColor[]>([])
   const [activities] = useState<Activity[]>([])
   const [isLoading] = useState(false)
 
@@ -279,6 +371,42 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (!error && data) setRoles(data.map(mapDbRole))
   }, [])
 
+  const refreshStoreCollections = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
+    const { data, error } = await supabase
+      .from('collections')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setStoreCollections(data.map(mapDbStoreCollection))
+  }, [])
+
+  const refreshProductCategories = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
+    const { data, error } = await supabase
+      .from('product_categories')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setProductCategories(data.map(mapDbProductCategory))
+  }, [])
+
+  const refreshProductStyles = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
+    const { data, error } = await supabase
+      .from('product_styles')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setProductStyles(data.map(mapDbProductStyle))
+  }, [])
+
+  const refreshProductColors = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
+    const { data, error } = await supabase
+      .from('product_colors')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error && data) setProductColors(data.map(mapDbProductColor))
+  }, [])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void Promise.all([
@@ -288,11 +416,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         refreshCustomers(),
         refreshBanners(),
         refreshRoles(),
+        refreshStoreCollections(),
+        refreshProductCategories(),
+        refreshProductStyles(),
+        refreshProductColors(),
       ])
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshRoles])
+  }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshRoles, refreshStoreCollections, refreshProductCategories, refreshProductStyles, refreshProductColors])
 
   const uploadImage = useCallback(async (file: File, path: string) => {
     if (!isSupabaseConfigured()) {
@@ -332,6 +464,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       discount_percent: product.discountPercent || 0,
       rating: product.rating || 0,
       rating_count: product.ratingCount || 0,
+      collection_id: product.collectionId || null,
+      sell_individually: product.sellIndividually ?? true,
       description: product.description,
       in_game_images: product.inGameImages || [],
       specs: product.specs || [],
@@ -357,6 +491,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (product.discountPercent !== undefined) updateData.discount_percent = product.discountPercent
     if (product.rating !== undefined) updateData.rating = product.rating
     if (product.ratingCount !== undefined) updateData.rating_count = product.ratingCount
+    if (product.collectionId !== undefined) updateData.collection_id = product.collectionId
+    if (product.sellIndividually !== undefined) updateData.sell_individually = product.sellIndividually
     if (product.description !== undefined) updateData.description = product.description
     if (product.inGameImages !== undefined) updateData.in_game_images = product.inGameImages
     if (product.specs !== undefined) updateData.specs = product.specs
@@ -520,6 +656,121 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     return ok()
   }, [refreshRoles])
 
+  const addStoreCollection = useCallback(async (collection: Omit<StoreCollection, 'id' | 'createdAt'>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('collections').insert({
+      name: collection.name,
+      subtitle: collection.subtitle,
+      image: collection.image,
+      color: collection.color,
+      price: collection.price,
+      discount_percent: collection.discountPercent,
+      active: collection.active,
+      product_ids: collection.productIds,
+    })
+    if (error) return fail(error.message)
+    await refreshStoreCollections()
+    return ok()
+  }, [refreshStoreCollections])
+
+  const updateStoreCollection = useCallback(async (id: number, collection: Partial<StoreCollection>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const updateData: Partial<StoreCollectionRow> = {}
+    if (collection.name !== undefined) updateData.name = collection.name
+    if (collection.subtitle !== undefined) updateData.subtitle = collection.subtitle
+    if (collection.image !== undefined) updateData.image = collection.image
+    if (collection.color !== undefined) updateData.color = collection.color
+    if (collection.price !== undefined) updateData.price = collection.price
+    if (collection.discountPercent !== undefined) updateData.discount_percent = collection.discountPercent
+    if (collection.active !== undefined) updateData.active = collection.active
+    if (collection.productIds !== undefined) updateData.product_ids = collection.productIds
+
+    const { error } = await supabase.from('collections').update(updateData).eq('id', id)
+    if (error) return fail(error.message)
+    await refreshStoreCollections()
+    return ok()
+  }, [refreshStoreCollections])
+
+  const deleteStoreCollection = useCallback(async (id: number) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('collections').delete().eq('id', id)
+    if (error) return fail(error.message)
+    await refreshStoreCollections()
+    return ok()
+  }, [refreshStoreCollections])
+
+  const addProductCategory = useCallback(async (category: Omit<ProductCategory, 'id'>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_categories').insert({ id: crypto.randomUUID(), ...category })
+    if (error) return fail(error.message)
+    await refreshProductCategories()
+    return ok()
+  }, [refreshProductCategories])
+
+  const updateProductCategory = useCallback(async (id: string, category: Partial<ProductCategory>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_categories').update(category).eq('id', id)
+    if (error) return fail(error.message)
+    await refreshProductCategories()
+    return ok()
+  }, [refreshProductCategories])
+
+  const deleteProductCategory = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_categories').delete().eq('id', id)
+    if (error) return fail(error.message)
+    await refreshProductCategories()
+    return ok()
+  }, [refreshProductCategories])
+
+  const addProductStyle = useCallback(async (style: Omit<ProductStyle, 'id'>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_styles').insert({ id: crypto.randomUUID(), ...style })
+    if (error) return fail(error.message)
+    await refreshProductStyles()
+    return ok()
+  }, [refreshProductStyles])
+
+  const updateProductStyle = useCallback(async (id: string, style: Partial<ProductStyle>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_styles').update(style).eq('id', id)
+    if (error) return fail(error.message)
+    await refreshProductStyles()
+    return ok()
+  }, [refreshProductStyles])
+
+  const deleteProductStyle = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_styles').delete().eq('id', id)
+    if (error) return fail(error.message)
+    await refreshProductStyles()
+    return ok()
+  }, [refreshProductStyles])
+
+  const addProductColor = useCallback(async (color: Omit<ProductColor, 'id'>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_colors').insert({ id: crypto.randomUUID(), ...color })
+    if (error) return fail(error.message)
+    await refreshProductColors()
+    return ok()
+  }, [refreshProductColors])
+
+  const updateProductColor = useCallback(async (id: string, color: Partial<ProductColor>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_colors').update(color).eq('id', id)
+    if (error) return fail(error.message)
+    await refreshProductColors()
+    return ok()
+  }, [refreshProductColors])
+
+  const deleteProductColor = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('product_colors').delete().eq('id', id)
+    if (error) return fail(error.message)
+    await refreshProductColors()
+    return ok()
+  }, [refreshProductColors])
+
   return (
     <AdminContext.Provider
       value={{
@@ -531,6 +782,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         activities,
         banners,
         roles,
+        storeCollections,
+        productCategories,
+        productStyles,
+        productColors,
         isLoading,
         refreshProducts,
         refreshCollections: async () => {},
@@ -539,6 +794,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         refreshCustomers,
         refreshBanners,
         refreshRoles,
+        refreshStoreCollections,
+        refreshProductCategories,
+        refreshProductStyles,
+        refreshProductColors,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -553,6 +812,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         addRole,
         updateRole,
         deleteRole,
+        addStoreCollection,
+        updateStoreCollection,
+        deleteStoreCollection,
+        addProductCategory,
+        updateProductCategory,
+        deleteProductCategory,
+        addProductStyle,
+        updateProductStyle,
+        deleteProductStyle,
+        addProductColor,
+        updateProductColor,
+        deleteProductColor,
         uploadImage,
       }}
     >

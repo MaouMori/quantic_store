@@ -13,6 +13,8 @@ export interface Product {
   discountPercent?: number
   rating?: number
   ratingCount?: number
+  collectionId?: number | null
+  sellIndividually?: boolean
   description: string
   inGameImages?: string[]
   specs?: { label: string; value: string }[]

@@ -33,6 +33,8 @@ export type Tables = {
     discount_percent?: number
     rating?: number
     rating_count?: number
+    collection_id?: number | null
+    sell_individually?: boolean
     description: string
     in_game_images?: string[]
     specs?: { label: string; value: string }[]
@@ -44,6 +46,32 @@ export type Tables = {
     subtitle: string
     image: string
     color: string
+    price?: number
+    discount_percent?: number
+    active?: boolean
+    product_ids?: number[]
+    created_at?: string
+  }
+  product_categories: {
+    id: string
+    name: string
+    slug: string
+    active: boolean
+    created_at?: string
+  }
+  product_styles: {
+    id: string
+    name: string
+    slug: string
+    active: boolean
+    created_at?: string
+  }
+  product_colors: {
+    id: string
+    name: string
+    slug: string
+    hex: string
+    active: boolean
     created_at?: string
   }
   banners: {

@@ -21,6 +21,7 @@ import AdminPedidos from './pages/admin/AdminPedidos'
 import AdminCupons from './pages/admin/AdminCupons'
 import AdminCargos from './pages/admin/AdminCargos'
 import AdminBanners from './pages/admin/AdminBanners'
+import AdminColecoes from './pages/admin/AdminColecoes'
 import AdminClientes, {
   AdminCategorias,
   AdminTags,
@@ -77,6 +78,7 @@ function AppContent() {
       >
         <Route index element={<Dashboard />} />
         <Route path="produtos" element={<AdminProdutos />} />
+        <Route path="colecoes" element={<AdminColecoes />} />
         <Route path="pedidos" element={<AdminPedidos />} />
         <Route path="clientes" element={<AdminClientes />} />
         <Route path="cupons" element={<AdminCupons />} />

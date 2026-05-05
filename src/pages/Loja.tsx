@@ -9,7 +9,6 @@ import {
   X,
   Search,
 } from 'lucide-react'
-import { categories, styles, colors } from '../data/storeData'
 import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
 
@@ -21,8 +20,14 @@ const getFinalPrice = (price: number, discountPercent = 0) => {
 }
 
 export default function Loja() {
-  const { products, banners } = useAdmin()
+  const { products, banners, productCategories, productStyles, productColors } = useAdmin()
   const pageBanners = banners.filter(banner => banner.active && banner.position === 'loja')
+  const categories = [
+    { value: 'todos', label: 'Todos os produtos' },
+    ...productCategories.filter(item => item.active).map(item => ({ value: item.slug, label: item.name })),
+  ]
+  const styles = productStyles.filter(item => item.active).map(item => ({ value: item.slug, label: item.name }))
+  const colors = productColors.filter(item => item.active).map(item => ({ value: item.slug, hex: item.hex, label: item.name }))
   const [category, setCategory] = useState('todos')
   const [selectedStyles, setSelectedStyles] = useState<Set<string>>(new Set())
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())
@@ -85,6 +90,7 @@ export default function Loja() {
   const filtered = useMemo(() => {
     let result = products.filter(p => {
       const matchCategory = category === 'todos' || p.category === category
+      const matchVisibility = p.sellIndividually ?? true
       const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchPrice = getFinalPrice(p.price, p.discountPercent) <= priceRange
       const matchNew = !onlyNew || p.isNew
@@ -94,7 +100,7 @@ export default function Loja() {
       const matchColor =
         selectedColors.size === 0 ||
         (p.color && p.color.some(c => selectedColors.has(c)))
-      return matchCategory && matchSearch && matchPrice && matchNew && matchStyle && matchColor
+      return matchVisibility && matchCategory && matchSearch && matchPrice && matchNew && matchStyle && matchColor
     })
 
     switch (sortBy) {

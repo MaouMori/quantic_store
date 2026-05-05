@@ -18,7 +18,18 @@ import type { Product } from '../../data/storeData'
 import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 export default function AdminProdutos() {
-  const { products, addProduct, updateProduct, deleteProduct, uploadImage, refreshProducts } = useAdmin()
+  const {
+    products,
+    storeCollections,
+    productCategories,
+    productStyles,
+    productColors,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    uploadImage,
+    refreshProducts,
+  } = useAdmin()
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -174,6 +185,10 @@ export default function AdminProdutos() {
           onClose={() => { setEditing(null); setIsCreating(false) }}
           uploadImage={uploadImage}
           isSaving={isSaving}
+          collections={storeCollections}
+          categories={productCategories}
+          styles={productStyles}
+          colors={productColors}
         />
       )}
     </div>
@@ -186,12 +201,20 @@ function ProductModal({
   onClose,
   uploadImage,
   isSaving,
+  collections,
+  categories,
+  styles,
+  colors,
 }: {
   product: Product | null
   onSave: (p: Product) => void
   onClose: () => void
   uploadImage: (file: File, path: string) => Promise<string | null>
   isSaving: boolean
+  collections: { id: number; name: string; active: boolean }[]
+  categories: { name: string; slug: string; active: boolean }[]
+  styles: { name: string; slug: string; active: boolean }[]
+  colors: { name: string; slug: string; hex: string; active: boolean }[]
 }) {
   const [form, setForm] = useState<Partial<Product>>(
     product || {
@@ -205,6 +228,8 @@ function ProductModal({
       discountPercent: 0,
       rating: 0,
       ratingCount: 0,
+      collectionId: null,
+      sellIndividually: true,
       description: '',
       inGameImages: [],
       specs: [],
@@ -277,6 +302,23 @@ function ProductModal({
     }))
   }
 
+  const toggleArrayValue = (field: 'style' | 'color', value: string) => {
+    setForm(prev => {
+      const current = prev[field] || []
+      return {
+        ...prev,
+        [field]: current.includes(value)
+          ? current.filter(item => item !== value)
+          : [...current, value],
+      }
+    })
+  }
+
+  const activeCategories = categories.filter(category => category.active)
+  const activeStyles = styles.filter(style => style.active)
+  const activeColors = colors.filter(color => color.active)
+  const activeCollections = collections.filter(collection => collection.active)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -310,12 +352,34 @@ function ProductModal({
               <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Categoria</label>
               <select value={form.category || 'cabelos'} onChange={e => setForm({ ...form, category: e.target.value })}
                 className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50">
-                <option value="cabelos">Cabelos</option>
-                <option value="roupas">Roupas</option>
-                <option value="acessorios">Acessorios</option>
-                <option value="conjuntos">Conjuntos</option>
-                <option value="outros">Outros</option>
+                {(activeCategories.length > 0 ? activeCategories : [
+                  { slug: 'cabelos', name: 'Cabelos' },
+                  { slug: 'roupas', name: 'Roupas' },
+                  { slug: 'acessorios', name: 'Acessorios' },
+                  { slug: 'conjuntos', name: 'Conjuntos' },
+                  { slug: 'outros', name: 'Outros' },
+                ]).map(category => (
+                  <option key={category.slug} value={category.slug}>{category.name}</option>
+                ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Colecao</label>
+              <select value={form.collectionId || ''} onChange={e => setForm({ ...form, collectionId: e.target.value ? Number(e.target.value) : null })}
+                className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50">
+                <option value="">Sem colecao</option>
+                {activeCollections.map(collection => (
+                  <option key={collection.id} value={collection.id}>{collection.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer pb-2">
+                <input type="checkbox" checked={form.sellIndividually ?? true} onChange={e => setForm({ ...form, sellIndividually: e.target.checked })} className="accent-neon-pink" />
+                <span className="text-sm text-text-muted">Vender produto separado</span>
+              </label>
             </div>
 
             <div className="sm:col-span-2">
@@ -391,6 +455,41 @@ function ProductModal({
               <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Descricao</label>
               <textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })}
                 rows={3} className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50 resize-none" />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-2">Estilos</label>
+              <div className="flex flex-wrap gap-2">
+                {activeStyles.map(style => (
+                  <button
+                    key={style.slug}
+                    type="button"
+                    onClick={() => toggleArrayValue('style', style.slug)}
+                    className={`rounded-lg border px-3 py-2 text-xs font-heading font-bold transition-colors ${(form.style || []).includes(style.slug) ? 'border-neon-pink bg-neon-pink/10 text-neon-pink' : 'border-neon-pink/10 bg-void-light text-text-muted hover:text-text-main'}`}
+                  >
+                    {style.name}
+                  </button>
+                ))}
+                {activeStyles.length === 0 && <p className="text-text-dim text-sm">Crie estilos em Categorias antes de marcar aqui.</p>}
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-2">Cores disponiveis</label>
+              <div className="flex flex-wrap gap-2">
+                {activeColors.map(color => (
+                  <button
+                    key={color.slug}
+                    type="button"
+                    onClick={() => toggleArrayValue('color', color.slug)}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors ${(form.color || []).includes(color.slug) ? 'border-neon-pink bg-neon-pink/10 text-neon-pink' : 'border-neon-pink/10 bg-void-light text-text-muted hover:text-text-main'}`}
+                  >
+                    <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: color.hex }} />
+                    {color.name}
+                  </button>
+                ))}
+                {activeColors.length === 0 && <p className="text-text-dim text-sm">Crie cores em Categorias antes de marcar aqui.</p>}
+              </div>
             </div>
 
             <div className="sm:col-span-2">

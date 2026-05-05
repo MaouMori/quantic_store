@@ -22,7 +22,7 @@ export default function Produto() {
   const { products, refreshProducts } = useAdmin()
   const product = products.find(p => p.id === Number(id))
   const { addItem } = useCart()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isAdmin } = useAuth()
 
   const [selectedImage, setSelectedImage] = useState(0)
   const [liked, setLiked] = useState(false)
@@ -48,7 +48,7 @@ export default function Produto() {
   }
 
   const related = products
-    .filter(p => p.id !== product.id && p.category === product.category)
+    .filter(p => p.id !== product.id && p.category === product.category && (p.sellIndividually ?? true))
     .slice(0, 4)
   const allImages = Array.from(new Set([product.image, ...product.images, ...(product.inGameImages || [])]))
   const discountPercent = Math.min(100, Math.max(0, product.discountPercent || 0))
@@ -57,8 +57,25 @@ export default function Produto() {
   const ratingCount = ratingOverride?.productId === product.id ? ratingOverride.ratingCount : product.ratingCount || 0
   const ratingLabel = ratingCount === 1 ? '1 avaliacao' : `${ratingCount} avaliacoes`
   const cameFromAdmin = searchParams.get('from') === 'admin'
+  const canBuyIndividually = product.sellIndividually ?? true
+
+  if (!canBuyIndividually && !cameFromAdmin && !isAdmin) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <p className="text-text-muted text-lg">Este item faz parte de uma colecao e nao e vendido separadamente.</p>
+        <Link
+          to="/colecoes"
+          className="inline-flex items-center gap-2 text-neon-pink mt-4 hover:underline"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Ver colecoes
+        </Link>
+      </div>
+    )
+  }
 
   const handleAddToCart = () => {
+    if (!canBuyIndividually) return
     for (let i = 0; i < quantity; i++) {
       addItem({
         id: product.id,
@@ -365,10 +382,11 @@ export default function Produto() {
 
             <button
               onClick={handleAddToCart}
-              className="flex-1 bg-neon-pink hover:bg-hot-pink text-white py-3 rounded-xl font-heading font-bold tracking-wider transition-all btn-shine flex items-center justify-center gap-2"
+              disabled={!canBuyIndividually}
+              className="flex-1 bg-neon-pink hover:bg-hot-pink disabled:bg-void-lighter disabled:text-text-dim disabled:cursor-not-allowed text-white py-3 rounded-xl font-heading font-bold tracking-wider transition-all btn-shine flex items-center justify-center gap-2"
             >
               <ShoppingCart className="w-5 h-5" />
-              ADICIONAR AO CARRINHO
+              {canBuyIndividually ? 'ADICIONAR AO CARRINHO' : 'DISPONIVEL SOMENTE NA COLECAO'}
             </button>
           </div>
 

@@ -16,7 +16,7 @@ export default function BestSellers() {
   const { addItem } = useCart()
   const trackRef = useRef<HTMLDivElement>(null)
 
-  const bestsellers = products.filter(p => p.isBestseller)
+  const bestsellers = products.filter(p => p.isBestseller && (p.sellIndividually ?? true))
   const visibleCount = typeof window !== 'undefined' && window.innerWidth >= 1024 ? 5 : window.innerWidth >= 640 ? 3 : 2
   const maxIndex = Math.max(0, bestsellers.length - visibleCount)
 

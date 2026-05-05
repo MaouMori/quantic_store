@@ -40,11 +40,12 @@ const menuGroups = [
     title: 'GERENCIAMENTO',
     items: [
       { path: '/admin/produtos', label: 'Produtos', icon: Package },
+      { path: '/admin/colecoes', label: 'Colecoes', icon: FolderTree },
       { path: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
       { path: '/admin/clientes', label: 'Clientes', icon: Users },
       { path: '/admin/cupons', label: 'Cupons', icon: Ticket },
       { path: '/admin/categorias', label: 'Categorias', icon: FolderTree },
-      { path: '/admin/tags', label: 'Tags', icon: Tag },
+      { path: '/admin/tags', label: 'Estilos e Cores', icon: Tag },
     ],
   },
   {
