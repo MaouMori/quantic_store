@@ -56,6 +56,7 @@ function AppContent() {
     <Routes>
       {/* Admin Routes */}
       <Route path="/admin/login" element={<Login />} />
+      <Route path="/admin/reset-password" element={<Login />} />
       <Route
         path="/admin"
         element={
