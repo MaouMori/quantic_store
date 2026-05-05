@@ -12,6 +12,7 @@ const isSupabaseConfigured = () => {
 export interface Order {
   id: string
   customer: string
+  customerEmail?: string
   customerAvatar: string
   date: string
   status: 'concluido' | 'em_processamento' | 'pago' | 'cancelado'
@@ -370,6 +371,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.from('orders').insert({
       id: crypto.randomUUID(),
       customer_name: order.customer,
+      customer_email: order.customerEmail || 'cliente@teste.local',
       customer_avatar: order.customerAvatar,
       status: order.status,
       total: order.total,

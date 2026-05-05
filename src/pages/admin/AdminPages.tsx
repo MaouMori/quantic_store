@@ -350,6 +350,7 @@ export function AdminLogs() {
     const { error } = await supabase.from('orders').insert({
       id,
       customer_name: 'Cliente Teste',
+      customer_email: 'cliente.teste@quantic.local',
       customer_avatar: '/avatars/default.jpg',
       status: 'em_processamento',
       total: 1,
