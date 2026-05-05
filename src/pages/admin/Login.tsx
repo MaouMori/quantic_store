@@ -15,6 +15,8 @@ export default function Login() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const normalizedEmail = email.trim().toLowerCase()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -22,7 +24,7 @@ export default function Login() {
     setLoading(true)
 
     if (mode === 'login') {
-      const result = await login(email, password)
+      const result = await login(normalizedEmail, password)
       if (result.success) {
         if (result.user?.role === 'Administrador') {
           navigate('/admin')
@@ -39,15 +41,16 @@ export default function Login() {
         setLoading(false)
         return
       }
-      const result = await signUp(email, password, name)
+      const result = await signUp(normalizedEmail, password, name)
       if (result.success) {
-        setSuccess('Conta criada! Verifique seu email para confirmar.')
+        setEmail(normalizedEmail)
+        setSuccess('Conta criada! Verifique seu email para confirmar. Depois, confirme que o perfil esta como Administrador no Supabase.')
         setMode('login')
       } else {
         setError(result.error || 'Erro ao criar conta.')
       }
     } else if (mode === 'forgot') {
-      const { error } = await import('../../lib/supabase').then(m => m.supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await import('../../lib/supabase').then(m => m.supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: `${window.location.origin}/admin/reset-password`,
       }))
       if (error) {

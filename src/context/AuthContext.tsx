@@ -38,6 +38,8 @@ const isSupabaseConfigured = () => {
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 }
 
+const normalizeEmail = (email: string) => email.trim().toLowerCase()
+
 const getAuthUserName = (authUser: SupabaseUser) => {
   const metadataName = authUser.user_metadata?.name
   if (typeof metadataName === 'string' && metadataName.trim()) return metadataName
@@ -147,11 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Supabase nao configurado. Verifique as variaveis de ambiente.' }
     }
 
+    const normalizedEmail = normalizeEmail(email)
+    const normalizedName = name.trim()
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
-        data: { name },
+        data: { name: normalizedName },
         emailRedirectTo: `${window.location.origin}/admin/login`,
       },
     })
@@ -161,8 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
-        name,
-        email,
+        name: normalizedName,
+        email: normalizedEmail,
         role: 'Cliente',
         role_color: '#ff2d95',
         permissions: [],
@@ -181,9 +186,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Supabase nao configurado. Verifique as variaveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.' }
     }
 
+    const normalizedEmail = normalizeEmail(email)
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       })
 
