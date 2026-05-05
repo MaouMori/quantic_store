@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
+import { useAdmin } from '../../context/useAdmin'
 import {
   LayoutDashboard,
   Package,
@@ -22,9 +23,10 @@ import {
   ChevronDown,
   LogOut,
   Bell,
-  Search,
   Menu,
   Skull,
+  Store,
+  User,
 } from 'lucide-react'
 
 const menuGroups = [
@@ -82,10 +84,24 @@ const menuGroups = [
 
 export default function AdminLayout() {
   const { user, logout, isLoading } = useAuth()
+  const { products, orders, banners, coupons } = useAdmin()
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [notifications] = useState(3)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+
+  const notifications = [
+    `${products.length} produtos cadastrados`,
+    `${orders.length} pedidos no painel`,
+    `${banners.filter(banner => banner.active).length} banners ativos`,
+    `${coupons.filter(coupon => coupon.active).length} cupons ativos`,
+  ]
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/admin/login')
+  }
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -221,25 +237,53 @@ export default function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center bg-void-lighter border border-neon-pink/10 rounded-lg px-3 py-1.5">
-                <Search className="w-4 h-4 text-text-dim mr-2" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar..."
-                  className="bg-transparent text-sm text-text-main placeholder-text-dim focus:outline-none w-40"
-                />
-              </div>
-
-              <button className="relative p-2 text-text-muted hover:text-neon-pink transition-colors">
-                <Bell className="w-5 h-5" />
-                {notifications > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-neon-pink text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )}
+              <button
+                onClick={() => navigate('/')}
+                className="hidden sm:flex items-center gap-2 bg-void-lighter border border-neon-pink/10 rounded-lg px-3 py-2 text-xs font-heading font-bold text-text-muted hover:text-neon-pink hover:border-neon-pink/30 transition-colors"
+              >
+                <Store className="w-4 h-4" />
+                VER LOJA
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setNotificationsOpen(open => !open)
+                    setUserMenuOpen(false)
+                  }}
+                  className="relative p-2 text-text-muted hover:text-neon-pink transition-colors"
+                  title="Avisos do painel"
+                >
+                  <Bell className="w-5 h-5" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-neon-pink text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-72 rounded-xl border border-neon-pink/10 bg-void-light shadow-xl shadow-black/30 p-3">
+                    <p className="font-heading font-bold text-xs text-text-main tracking-wider mb-2">AVISOS DO PAINEL</p>
+                    <div className="space-y-2">
+                      {notifications.map(notification => (
+                        <div key={notification} className="rounded-lg bg-void-lighter px-3 py-2 text-xs text-text-muted">
+                          {notification}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(open => !open)
+                    setNotificationsOpen(false)
+                  }}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-void-lighter transition-colors"
+                >
                 <div className="w-8 h-8 rounded-full bg-neon-pink/10 border border-neon-pink/20 flex items-center justify-center overflow-hidden">
                   <img
                     src={user?.avatar}
@@ -257,6 +301,33 @@ export default function AdminLayout() {
                   <p className="text-[10px] text-text-dim">{user?.role}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-text-dim" />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-neon-pink/10 bg-void-light shadow-xl shadow-black/30 p-2">
+                    <button
+                      onClick={() => navigate('/admin')}
+                      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-muted hover:bg-void-lighter hover:text-neon-pink transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      Meu painel
+                    </button>
+                    <button
+                      onClick={() => navigate('/')}
+                      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-muted hover:bg-void-lighter hover:text-neon-pink transition-colors"
+                    >
+                      <Store className="w-4 h-4" />
+                      Voltar para loja
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-muted hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sair
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
