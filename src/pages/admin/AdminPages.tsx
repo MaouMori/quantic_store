@@ -273,10 +273,10 @@ export function AdminLogs() {
       image: '/hero/slide1.jpg',
       images: ['/hero/slide1.jpg'],
       category: 'outros',
-      isNew: true,
-      isBestseller: false,
+      is_new: true,
+      is_bestseller: false,
       description: 'Produto criado pelo teste automatico do painel.',
-      inGameImages: [],
+      in_game_images: [],
       specs: [],
     }).select('id').single()
     assertDb(error)
@@ -315,8 +315,8 @@ export function AdminLogs() {
       code: `TESTE${Date.now().toString().slice(-6)}`,
       discount: 1,
       type: 'percent',
-      minPurchase: 0,
-      maxUses: 1,
+      min_purchase: 0,
+      max_uses: 1,
       active: true,
     })
     assertDb(error)
