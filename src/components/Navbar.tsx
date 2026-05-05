@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingCart, Search, User, Menu, X, Heart, LogIn } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogIn, LogOut, Menu, Search, ShoppingCart, User, X, Heart } from 'lucide-react'
 import { useCart } from '../context/useCart'
+import { useAuth } from '../context/useAuth'
 
 interface NavbarProps {
   onCartClick: () => void
@@ -11,7 +12,9 @@ export default function Navbar({ onCartClick }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const { totalItems } = useCart()
+  const { user, isAuthenticated, isAdmin, logout } = useAuth()
   const location = useLocation()
 
   useEffect(() => {
@@ -29,6 +32,11 @@ export default function Navbar({ onCartClick }: NavbarProps) {
     { path: '/sobre', label: 'SOBRE' },
     { path: '/termos', label: 'TERMOS' },
   ]
+
+  const handleLogout = async () => {
+    setAccountOpen(false)
+    await logout()
+  }
 
   return (
     <>
@@ -92,21 +100,68 @@ export default function Navbar({ onCartClick }: NavbarProps) {
                 )}
               </button>
 
-              <Link
-                to="/sobre"
-                className="hidden sm:block p-2 text-text-muted hover:text-neon-pink transition-colors"
-                title="Minha conta"
-              >
-                <User className="w-5 h-5" />
-              </Link>
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setAccountOpen(open => !open)}
+                  className={`flex items-center gap-1 p-2 transition-colors ${isAuthenticated ? 'text-neon-pink' : 'text-text-muted hover:text-neon-pink'}`}
+                  title={isAuthenticated ? `Logado como ${user?.name}` : 'Minha conta'}
+                >
+                  <User className="w-5 h-5" />
+                  {isAuthenticated && (
+                    <span className="hidden xl:inline max-w-24 truncate text-xs font-heading font-bold">
+                      {user?.name}
+                    </span>
+                  )}
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {accountOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-neon-pink/20 bg-void/95 backdrop-blur-xl shadow-xl shadow-black/30 p-2">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-3 py-2 border-b border-neon-pink/10 mb-1">
+                          <p className="text-text-main text-sm font-heading font-bold truncate">{user?.name}</p>
+                          <p className="text-text-dim text-xs truncate">{user?.email}</p>
+                        </div>
+                        {isAdmin && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setAccountOpen(false)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            Painel admin
+                          </Link>
+                        )}
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors text-left"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sair
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        to="/admin/login"
+                        onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neon-pink hover:bg-neon-pink/10 transition-colors"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        Entrar
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Link
-                to="/admin/login"
+                to={isAuthenticated && isAdmin ? '/admin' : '/admin/login'}
                 className="hidden md:flex items-center gap-1.5 bg-neon-pink/10 hover:bg-neon-pink/20 border border-neon-pink/20 text-neon-pink px-3 py-1.5 rounded-lg text-xs font-heading font-bold tracking-wider transition-all"
                 title="Painel Administrativo"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                LOGIN
+                {isAuthenticated && isAdmin ? 'PAINEL' : isAuthenticated ? 'LOGADO' : 'LOGIN'}
               </Link>
 
               <button
@@ -159,13 +214,25 @@ export default function Navbar({ onCartClick }: NavbarProps) {
               </Link>
             ))}
             <Link
-              to="/admin/login"
+              to={isAuthenticated && isAdmin ? '/admin' : '/admin/login'}
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider text-neon-pink hover:bg-neon-pink/10 transition-colors"
             >
-              <LogIn className="w-4 h-4" />
-              LOGIN ADMIN
+              {isAuthenticated && isAdmin ? <LayoutDashboard className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+              {isAuthenticated && isAdmin ? 'PAINEL ADMIN' : isAuthenticated ? `LOGADO: ${user?.name}` : 'LOGIN'}
             </Link>
+            {isAuthenticated && (
+              <button
+                onClick={() => {
+                  setMobileOpen(false)
+                  void handleLogout()
+                }}
+                className="flex items-center gap-2 w-full px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider text-text-muted hover:bg-void-lighter hover:text-text-main transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                SAIR
+              </button>
+            )}
           </div>
         </div>
       </nav>

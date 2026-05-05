@@ -10,6 +10,9 @@ export interface Product {
   color?: string[]
   isNew: boolean
   isBestseller: boolean
+  discountPercent?: number
+  rating?: number
+  ratingCount?: number
   description: string
   inGameImages?: string[]
   specs?: { label: string; value: string }[]

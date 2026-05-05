@@ -140,6 +140,9 @@ function mapDbProduct(row: ProductRow): Product {
     color: row.color || [],
     isNew: row.is_new,
     isBestseller: row.is_bestseller,
+    discountPercent: row.discount_percent || 0,
+    rating: row.rating || 0,
+    ratingCount: row.rating_count || 0,
     description: row.description,
     inGameImages: row.in_game_images || [],
     specs: row.specs || [],
@@ -326,6 +329,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       color: product.color || [],
       is_new: product.isNew,
       is_bestseller: product.isBestseller,
+      discount_percent: product.discountPercent || 0,
+      rating: product.rating || 0,
+      rating_count: product.ratingCount || 0,
       description: product.description,
       in_game_images: product.inGameImages || [],
       specs: product.specs || [],
@@ -348,6 +354,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (product.color !== undefined) updateData.color = product.color
     if (product.isNew !== undefined) updateData.is_new = product.isNew
     if (product.isBestseller !== undefined) updateData.is_bestseller = product.isBestseller
+    if (product.discountPercent !== undefined) updateData.discount_percent = product.discountPercent
+    if (product.rating !== undefined) updateData.rating = product.rating
+    if (product.ratingCount !== undefined) updateData.rating_count = product.ratingCount
     if (product.description !== undefined) updateData.description = product.description
     if (product.inGameImages !== undefined) updateData.in_game_images = product.inGameImages
     if (product.specs !== undefined) updateData.specs = product.specs

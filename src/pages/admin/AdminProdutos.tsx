@@ -137,7 +137,7 @@ export default function AdminProdutos() {
                   <td className="py-3">
                     <div className="flex gap-1">
                       <button onClick={() => setEditing(product)} className="p-1.5 text-text-dim hover:text-neon-pink transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                      <Link to={`/produto/${product.id}`} className="p-1.5 text-text-dim hover:text-blue-400 transition-colors"><Eye className="w-3.5 h-3.5" /></Link>
+                      <Link to={`/produto/${product.id}?from=admin`} className="p-1.5 text-text-dim hover:text-blue-400 transition-colors"><Eye className="w-3.5 h-3.5" /></Link>
                       <button onClick={() => handleDelete(product.id)} className="p-1.5 text-text-dim hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </td>
@@ -202,12 +202,16 @@ function ProductModal({
       category: 'cabelos',
       isNew: true,
       isBestseller: false,
+      discountPercent: 0,
+      rating: 0,
+      ratingCount: 0,
       description: '',
       inGameImages: [],
       specs: [],
     }
   )
   const [uploading, setUploading] = useState(false)
+  const [newSpec, setNewSpec] = useState({ label: '', value: '' })
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'images' | 'inGameImages') => {
     const file = e.target.files?.[0]
@@ -233,8 +237,44 @@ function ProductModal({
     e.preventDefault()
     onSave({
       ...(form as Product),
+      images: form.images || [],
+      inGameImages: form.inGameImages || [],
+      specs: form.specs || [],
+      discountPercent: Math.min(100, Math.max(0, form.discountPercent || 0)),
       id: product?.id || Date.now(),
     })
+  }
+
+  const removeImage = (field: 'images' | 'inGameImages', index: number) => {
+    setForm(prev => ({
+      ...prev,
+      [field]: (prev[field] || []).filter((_, i) => i !== index),
+    }))
+  }
+
+  const addImageUrl = (field: 'images' | 'inGameImages') => {
+    const url = window.prompt('Cole a URL da imagem')
+    if (!url?.trim()) return
+    setForm(prev => ({
+      ...prev,
+      [field]: [...(prev[field] || []), url.trim()],
+    }))
+  }
+
+  const addSpec = () => {
+    if (!newSpec.label.trim() || !newSpec.value.trim()) return
+    setForm(prev => ({
+      ...prev,
+      specs: [...(prev.specs || []), { label: newSpec.label.trim(), value: newSpec.value.trim() }],
+    }))
+    setNewSpec({ label: '', value: '' })
+  }
+
+  const removeSpec = (index: number) => {
+    setForm(prev => ({
+      ...prev,
+      specs: (prev.specs || []).filter((_, i) => i !== index),
+    }))
   }
 
   return (
@@ -258,6 +298,12 @@ function ProductModal({
               <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Preco</label>
               <input type="number" step="0.01" value={form.price || 0} onChange={e => setForm({ ...form, price: Number(e.target.value) })}
                 className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50" required />
+            </div>
+
+            <div>
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Desconto (%)</label>
+              <input type="number" min="0" max="100" step="1" value={form.discountPercent || 0} onChange={e => setForm({ ...form, discountPercent: Number(e.target.value) })}
+                className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50" />
             </div>
 
             <div>
@@ -294,9 +340,83 @@ function ProductModal({
             </div>
 
             <div className="sm:col-span-2">
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Galeria do produto</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(form.images || []).map((img, index) => (
+                  <div key={`${img}-${index}`} className="relative w-20 h-20 rounded-lg overflow-hidden bg-void-lighter border border-neon-pink/10">
+                    <img src={img} alt={`Galeria ${index + 1}`} className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeImage('images', index)} className="absolute top-1 right-1 w-5 h-5 rounded bg-void/80 text-text-main flex items-center justify-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <label className="flex items-center gap-2 cursor-pointer bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors w-fit">
+                  <Upload className="w-4 h-4" />
+                  <span>{uploading ? 'Enviando...' : 'Enviar para galeria'}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, 'images')} />
+                </label>
+                <button type="button" onClick={() => addImageUrl('images')} className="bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors">
+                  Adicionar URL
+                </button>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Imagens do cabelo no jogo</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(form.inGameImages || []).map((img, index) => (
+                  <div key={`${img}-${index}`} className="relative w-20 h-20 rounded-lg overflow-hidden bg-void-lighter border border-neon-purple/20">
+                    <img src={img} alt={`No jogo ${index + 1}`} className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeImage('inGameImages', index)} className="absolute top-1 right-1 w-5 h-5 rounded bg-void/80 text-text-main flex items-center justify-center">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <label className="flex items-center gap-2 cursor-pointer bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors w-fit">
+                  <Upload className="w-4 h-4" />
+                  <span>{uploading ? 'Enviando...' : 'Enviar imagem no jogo'}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, 'inGameImages')} />
+                </label>
+                <button type="button" onClick={() => addImageUrl('inGameImages')} className="bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors">
+                  Adicionar URL
+                </button>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
               <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Descricao</label>
               <textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })}
                 rows={3} className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50 resize-none" />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Especificacoes</label>
+              <div className="space-y-2 mb-3">
+                {(form.specs || []).map((spec, index) => (
+                  <div key={`${spec.label}-${index}`} className="flex items-center gap-2 bg-void-light border border-neon-pink/10 rounded-lg px-3 py-2">
+                    <span className="text-text-main text-sm font-semibold">{spec.label}:</span>
+                    <span className="text-text-muted text-sm flex-1">{spec.value}</span>
+                    <button type="button" onClick={() => removeSpec(index)} className="text-text-dim hover:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+                <input type="text" value={newSpec.label} onChange={e => setNewSpec(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="Nome. Ex: Formato"
+                  className="bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 text-sm" />
+                <input type="text" value={newSpec.value} onChange={e => setNewSpec(prev => ({ ...prev, value: e.target.value }))}
+                  placeholder="Valor. Ex: .ydd / .ytd"
+                  className="bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 text-sm" />
+                <button type="button" onClick={addSpec} className="bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors">
+                  Adicionar
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-4">

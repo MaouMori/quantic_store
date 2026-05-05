@@ -4,6 +4,11 @@ import { ChevronLeft, ChevronRight, ShoppingCart, Heart, Sparkles } from 'lucide
 import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
 
+const getFinalPrice = (price: number, discountPercent = 0) => {
+  const safeDiscount = Math.min(100, Math.max(0, discountPercent))
+  return Number((price * (1 - safeDiscount / 100)).toFixed(2))
+}
+
 export default function BestSellers() {
   const { products } = useAdmin()
   const [startIndex, setStartIndex] = useState(0)
@@ -69,7 +74,10 @@ export default function BestSellers() {
               ref={trackRef}
               className="carousel-track gap-4"
             >
-              {bestsellers.map(product => (
+              {bestsellers.map(product => {
+                const finalPrice = getFinalPrice(product.price, product.discountPercent)
+                const discountPercent = Math.min(100, Math.max(0, product.discountPercent || 0))
+                return (
                 <div
                   key={product.id}
                   className="product-card flex-shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(20%-13px)] rounded-xl overflow-hidden group"
@@ -102,6 +110,12 @@ export default function BestSellers() {
                         </span>
                       )}
 
+                      {discountPercent > 0 && (
+                        <span className="absolute bottom-2 left-2 bg-void/80 text-neon-pink border border-neon-pink/30 text-[10px] font-bold px-2 py-0.5 rounded">
+                          -{discountPercent}%
+                        </span>
+                      )}
+
                       <button
                         onClick={(e) => {
                           e.preventDefault()
@@ -129,14 +143,19 @@ export default function BestSellers() {
                       </h3>
                     </Link>
                     <p className="text-neon-pink font-bold text-sm mt-1">
-                      R$ {product.price.toFixed(2).replace('.', ',')}
+                      R$ {finalPrice.toFixed(2).replace('.', ',')}
                     </p>
+                    {discountPercent > 0 && (
+                      <p className="text-text-dim text-[10px] line-through">
+                        R$ {product.price.toFixed(2).replace('.', ',')}
+                      </p>
+                    )}
                     <button
                       onClick={() =>
                         addItem({
                           id: product.id,
                           name: product.name,
-                          price: product.price,
+                          price: finalPrice,
                           image: product.image,
                         })
                       }
@@ -147,7 +166,8 @@ export default function BestSellers() {
                     </button>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

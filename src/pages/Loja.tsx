@@ -15,6 +15,11 @@ import { useCart } from '../context/useCart'
 
 const ITEMS_PER_PAGE = 16
 
+const getFinalPrice = (price: number, discountPercent = 0) => {
+  const safeDiscount = Math.min(100, Math.max(0, discountPercent))
+  return Number((price * (1 - safeDiscount / 100)).toFixed(2))
+}
+
 export default function Loja() {
   const { products, banners } = useAdmin()
   const pageBanners = banners.filter(banner => banner.active && banner.position === 'loja')
@@ -81,7 +86,7 @@ export default function Loja() {
     let result = products.filter(p => {
       const matchCategory = category === 'todos' || p.category === category
       const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchPrice = p.price <= priceRange
+      const matchPrice = getFinalPrice(p.price, p.discountPercent) <= priceRange
       const matchNew = !onlyNew || p.isNew
       const matchStyle =
         selectedStyles.size === 0 ||
@@ -94,10 +99,10 @@ export default function Loja() {
 
     switch (sortBy) {
       case 'preco-baixo':
-        result = [...result].sort((a, b) => a.price - b.price)
+        result = [...result].sort((a, b) => getFinalPrice(a.price, a.discountPercent) - getFinalPrice(b.price, b.discountPercent))
         break
       case 'preco-alto':
-        result = [...result].sort((a, b) => b.price - a.price)
+        result = [...result].sort((a, b) => getFinalPrice(b.price, b.discountPercent) - getFinalPrice(a.price, a.discountPercent))
         break
       case 'nome':
         result = [...result].sort((a, b) => a.name.localeCompare(b.name))
@@ -394,6 +399,10 @@ export default function Loja() {
           {paginated.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {paginated.map(product => (
+                (() => {
+                  const finalPrice = getFinalPrice(product.price, product.discountPercent)
+                  const discountPercent = Math.min(100, Math.max(0, product.discountPercent || 0))
+                  return (
                 <div
                   key={product.id}
                   className="product-card rounded-xl overflow-hidden group"
@@ -425,6 +434,12 @@ export default function Loja() {
                         </span>
                       )}
 
+                      {discountPercent > 0 && (
+                        <span className="absolute bottom-2 left-2 bg-void/80 text-neon-pink border border-neon-pink/30 text-[10px] font-bold px-2 py-0.5 rounded">
+                          -{discountPercent}%
+                        </span>
+                      )}
+
                       <button
                         onClick={(e) => {
                           e.preventDefault()
@@ -451,15 +466,22 @@ export default function Loja() {
                       </h3>
                     </Link>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-neon-pink font-bold text-sm">
-                        R$ {product.price.toFixed(2).replace('.', ',')}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="block text-neon-pink font-bold text-sm">
+                          R$ {finalPrice.toFixed(2).replace('.', ',')}
+                        </span>
+                        {discountPercent > 0 && (
+                          <span className="block text-text-dim text-[10px] line-through">
+                            R$ {product.price.toFixed(2).replace('.', ',')}
+                          </span>
+                        )}
+                      </div>
                       <button
                         onClick={() =>
                           addItem({
                             id: product.id,
                             name: product.name,
-                            price: product.price,
+                            price: finalPrice,
                             image: product.image,
                           })
                         }
@@ -470,6 +492,8 @@ export default function Loja() {
                     </div>
                   </div>
                 </div>
+                  )
+                })()
               ))}
             </div>
           ) : (

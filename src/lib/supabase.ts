@@ -30,6 +30,9 @@ export type Tables = {
     color?: string[]
     is_new: boolean
     is_bestseller: boolean
+    discount_percent?: number
+    rating?: number
+    rating_count?: number
     description: string
     in_game_images?: string[]
     specs?: { label: string; value: string }[]

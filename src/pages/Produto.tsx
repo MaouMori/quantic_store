@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import {
   ShoppingCart,
   Heart,
@@ -13,17 +13,24 @@ import {
 } from 'lucide-react'
 import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
+import { useAuth } from '../context/useAuth'
+import { supabase } from '../lib/supabase'
 
 export default function Produto() {
   const { id } = useParams<{ id: string }>()
-  const { products } = useAdmin()
+  const [searchParams] = useSearchParams()
+  const { products, refreshProducts } = useAdmin()
   const product = products.find(p => p.id === Number(id))
   const { addItem } = useCart()
+  const { user, isAuthenticated } = useAuth()
 
   const [selectedImage, setSelectedImage] = useState(0)
   const [liked, setLiked] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState<'descricao' | 'ingame'>('descricao')
+  const [ratingOverride, setRatingOverride] = useState<{ productId: number; rating: number; ratingCount: number } | null>(null)
+  const [ratingFeedback, setRatingFeedback] = useState<string | null>(null)
+  const [ratingSaving, setRatingSaving] = useState(false)
 
   if (!product) {
     return (
@@ -43,17 +50,57 @@ export default function Produto() {
   const related = products
     .filter(p => p.id !== product.id && p.category === product.category)
     .slice(0, 4)
-  const allImages = [...product.images, ...(product.inGameImages || [])]
+  const allImages = Array.from(new Set([product.image, ...product.images, ...(product.inGameImages || [])]))
+  const discountPercent = Math.min(100, Math.max(0, product.discountPercent || 0))
+  const finalPrice = Number((product.price * (1 - discountPercent / 100)).toFixed(2))
+  const ratingValue = ratingOverride?.productId === product.id ? ratingOverride.rating : product.rating || 0
+  const ratingCount = ratingOverride?.productId === product.id ? ratingOverride.ratingCount : product.ratingCount || 0
+  const ratingLabel = ratingCount === 1 ? '1 avaliacao' : `${ratingCount} avaliacoes`
+  const cameFromAdmin = searchParams.get('from') === 'admin'
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
       addItem({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: finalPrice,
         image: product.image,
       })
     }
+  }
+
+  const handleRate = async (value: number) => {
+    if (!isAuthenticated || !user) {
+      setRatingFeedback('Entre na sua conta para avaliar este produto.')
+      return
+    }
+
+    setRatingSaving(true)
+    setRatingFeedback(null)
+
+    const { data, error } = await supabase.rpc('rate_product', {
+      p_product_id: product.id,
+      p_rating: value,
+    })
+
+    setRatingSaving(false)
+
+    if (error) {
+      setRatingFeedback(`Nao foi possivel salvar sua avaliacao: ${error.message}`)
+      return
+    }
+
+    const result = Array.isArray(data) ? data[0] : data
+    if (result) {
+      setRatingOverride({
+        productId: product.id,
+        rating: Number(result.rating) || value,
+        ratingCount: Number(result.rating_count) || 1,
+      })
+    }
+    window.localStorage.setItem(`quantic-rating-${user.id}-${product.id}`, String(value))
+    setRatingFeedback('Avaliacao salva.')
+    await refreshProducts()
   }
 
   return (
@@ -66,6 +113,16 @@ export default function Produto() {
         <span>/</span>
         <span className="text-text-main">{product.name}</span>
       </nav>
+
+      {cameFromAdmin && (
+        <Link
+          to="/admin/produtos"
+          className="inline-flex items-center gap-2 text-neon-pink mb-6 hover:underline"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Voltar para o painel
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Images */}
@@ -150,25 +207,43 @@ export default function Produto() {
               {product.name}
             </h1>
             <div className="flex items-center gap-3 mt-2">
-              <div className="flex gap-0.5">
+              <div className="flex gap-0.5" aria-label="Avaliar produto">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <Star key={i} className="w-4 h-4 text-star fill-star" />
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleRate(i)}
+                    disabled={!isAuthenticated || ratingSaving}
+                    className={`transition-transform ${isAuthenticated ? 'hover:scale-110 cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                    title={isAuthenticated ? `Avaliar com ${i} estrela${i > 1 ? 's' : ''}` : 'Entre para avaliar'}
+                  >
+                    <Star className={`w-4 h-4 ${i <= Math.round(ratingValue) ? 'text-star fill-star' : 'text-text-dim'}`} />
+                  </button>
                 ))}
               </div>
-              <span className="text-text-dim text-sm">4.9 (127 avaliacoes)</span>
+              <span className="text-text-dim text-sm">{ratingValue.toFixed(1)} ({ratingLabel})</span>
             </div>
+            {ratingFeedback && (
+              <p className={`text-xs mt-2 ${ratingFeedback.includes('salva') ? 'text-green-400' : 'text-red-400'}`}>
+                {ratingFeedback}
+              </p>
+            )}
           </div>
 
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold text-neon-pink">
-              R$ {product.price.toFixed(2).replace('.', ',')}
+              R$ {finalPrice.toFixed(2).replace('.', ',')}
             </span>
-            <span className="text-text-dim text-sm line-through">
-              R$ {(product.price * 1.2).toFixed(2).replace('.', ',')}
-            </span>
-            <span className="bg-neon-pink/10 text-neon-pink text-xs font-bold px-2 py-0.5 rounded">
-              -20%
-            </span>
+            {discountPercent > 0 && (
+              <>
+                <span className="text-text-dim text-sm line-through">
+                  R$ {product.price.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="bg-neon-pink/10 text-neon-pink text-xs font-bold px-2 py-0.5 rounded">
+                  -{discountPercent}%
+                </span>
+              </>
+            )}
           </div>
 
           {/* Tabs */}
@@ -207,11 +282,11 @@ export default function Produto() {
             <div className="space-y-4">
               <p className="text-text-muted leading-relaxed">{product.description}</p>
 
-              {product.specs && (
+              {product.specs && product.specs.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-heading font-bold text-sm text-text-main">Especificacoes:</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {product.specs.map((spec, i) => (
+                  {product.specs.map((spec, i) => (
                       <div
                         key={i}
                         className="flex items-center gap-2 text-sm text-text-muted"
@@ -222,9 +297,12 @@ export default function Produto() {
                           {spec.value}
                         </span>
                       </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
+                {product.specs.length === 0 && (
+                  <p className="text-text-dim text-sm">Nenhuma especificacao cadastrada.</p>
+                )}
+              </div>
               )}
             </div>
           ) : (
