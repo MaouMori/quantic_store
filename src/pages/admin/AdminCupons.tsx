@@ -7,7 +7,7 @@ import {
   X,
   Save,
 } from 'lucide-react'
-import { useAdmin } from '../../context/AdminContext'
+import { useAdmin } from '../../context/useAdmin'
 import type { Coupon } from '../../context/AdminContext'
 
 export default function AdminCupons() {

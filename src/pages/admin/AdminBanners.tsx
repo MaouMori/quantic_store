@@ -8,7 +8,7 @@ import {
   Save,
   Upload,
 } from 'lucide-react'
-import { useAdmin } from '../../context/AdminContext'
+import { useAdmin } from '../../context/useAdmin'
 import type { Banner } from '../../context/AdminContext'
 
 export default function AdminBanners() {

@@ -6,7 +6,7 @@ import {
   X,
   ShoppingBag,
 } from 'lucide-react'
-import { useAdmin } from '../../context/AdminContext'
+import { useAdmin } from '../../context/useAdmin'
 import type { Order } from '../../context/AdminContext'
 
 const statusOptions = [

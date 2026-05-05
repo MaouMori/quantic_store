@@ -10,7 +10,7 @@ import {
   Search,
 } from 'lucide-react'
 import { products, categories, styles, colors } from '../data/storeData'
-import { useCart } from '../context/CartContext'
+import { useCart } from '../context/useCart'
 
 const ITEMS_PER_PAGE = 16
 

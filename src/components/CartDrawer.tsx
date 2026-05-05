@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, Plus, Minus, ShoppingBag, Trash2, Ticket, Tag, Check } from 'lucide-react'
-import { useCart } from '../context/CartContext'
-import { useAdmin } from '../context/AdminContext'
+import { useCart } from '../context/useCart'
+import { useAdmin } from '../context/useAdmin'
 
 interface CartDrawerProps {
   open: boolean

@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
+import { CartContext } from './cartContextValue'
 
 export interface CartItem {
   id: number
@@ -14,7 +15,7 @@ export interface AppliedCoupon {
   type: 'percent' | 'fixed'
 }
 
-interface CartContextType {
+export interface CartContextType {
   items: CartItem[]
   appliedCoupon: AppliedCoupon | null
   addItem: (item: Omit<CartItem, 'quantity'>) => void
@@ -28,8 +29,6 @@ interface CartContextType {
   discountAmount: number
   totalPrice: number
 }
-
-const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
@@ -107,12 +106,4 @@ export function CartProvider({ children }: { children: ReactNode }) {
       {children}
     </CartContext.Provider>
   )
-}
-
-export function useCart() {
-  const context = useContext(CartContext)
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider')
-  }
-  return context
 }

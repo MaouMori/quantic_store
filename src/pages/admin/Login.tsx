@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 import { LogIn, Eye, EyeOff, Skull, UserPlus, ArrowLeft } from 'lucide-react'
 
 export default function Login() {
-  const { login, signUp } = useAuth()
+  const { login, logout, signUp } = useAuth()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
   const [email, setEmail] = useState('')
@@ -24,7 +24,12 @@ export default function Login() {
     if (mode === 'login') {
       const result = await login(email, password)
       if (result.success) {
-        navigate('/admin')
+        if (result.user?.role === 'Administrador') {
+          navigate('/admin')
+        } else {
+          await logout()
+          setError('Acesso restrito a administradores.')
+        }
       } else {
         setError(result.error || 'Email ou senha incorretos.')
       }

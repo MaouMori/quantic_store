@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ShoppingCart, Search, User, Menu, X, Heart, LogIn } from 'lucide-react'
-import { useCart } from '../context/CartContext'
+import { useCart } from '../context/useCart'
 
 interface NavbarProps {
   onCartClick: () => void
@@ -21,10 +21,6 @@ export default function Navbar({ onCartClick }: NavbarProps) {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
-
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [location])
 
   const navLinks = [
     { path: '/', label: 'HOME' },
@@ -149,10 +145,11 @@ export default function Navbar({ onCartClick }: NavbarProps) {
         >
           <div className="bg-void/95 backdrop-blur-xl border-t border-neon-pink/10 px-4 py-4 space-y-1">
             {navLinks.map(link => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`block px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider transition-colors ${
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider transition-colors ${
                   location.pathname === link.path
                     ? 'bg-neon-pink/10 text-neon-pink'
                     : 'text-text-muted hover:bg-void-lighter hover:text-text-main'
@@ -163,6 +160,7 @@ export default function Navbar({ onCartClick }: NavbarProps) {
             ))}
             <Link
               to="/admin/login"
+              onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider text-neon-pink hover:bg-neon-pink/10 transition-colors"
             >
               <LogIn className="w-4 h-4" />

@@ -10,7 +10,8 @@ import Sobre from './pages/Sobre'
 import Termos from './pages/Termos'
 import CartDrawer from './components/CartDrawer'
 import { CartProvider } from './context/CartContext'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
 import { AdminProvider } from './context/AdminContext'
 import Login from './pages/admin/Login'
 import AdminLayout from './pages/admin/AdminLayout'
@@ -37,8 +38,17 @@ import AdminClientes, {
 } from './pages/admin/AdminPages'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
-  return isAuthenticated ? <>{children}</> : <Navigate to="/admin/login" replace />
+  const { isAuthenticated, isAdmin, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-void flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-neon-pink border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return isAuthenticated && isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />
 }
 
 function AppContent() {

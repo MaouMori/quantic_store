@@ -1,5 +1,5 @@
 import { CreditCard, History, ClipboardList, Settings, MessageSquare, FileText, FolderTree, Tag, Lock, UserCog } from 'lucide-react'
-import { useAdmin } from '../../context/AdminContext'
+import { useAdmin } from '../../context/useAdmin'
 
 export default function AdminClientes() {
   const { customers } = useAdmin()

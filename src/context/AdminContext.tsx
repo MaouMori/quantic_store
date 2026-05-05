@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import type { Tables } from '../lib/supabase'
 import type { Product } from '../data/storeData'
+import { AdminContext } from './adminContextValue'
 
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
@@ -65,7 +67,7 @@ export interface Role {
   permissions: string[]
 }
 
-interface AdminContextType {
+export interface AdminContextType {
   products: Product[]
   collections: Product[]
   orders: Order[]
@@ -99,9 +101,15 @@ interface AdminContextType {
   uploadImage: (file: File, path: string) => Promise<string | null>
 }
 
-const AdminContext = createContext<AdminContextType | undefined>(undefined)
+type ProductRow = Tables['products']
+type OrderRow = Tables['orders']
+type OrderItemRow = OrderRow['items'][number]
+type CouponRow = Tables['coupons']
+type BannerRow = Tables['banners']
+type RoleRow = Tables['roles']
+type CustomerRow = Tables['customers']
 
-function mapDbProduct(row: any): Product {
+function mapDbProduct(row: ProductRow): Product {
   return {
     id: row.id,
     name: row.name,
@@ -120,7 +128,7 @@ function mapDbProduct(row: any): Product {
   }
 }
 
-function mapDbOrder(row: any): Order {
+function mapDbOrder(row: OrderRow): Order {
   return {
     id: row.id,
     customer: row.customer_name,
@@ -128,7 +136,7 @@ function mapDbOrder(row: any): Order {
     date: row.created_at ? new Date(row.created_at).toLocaleString('pt-BR') : '',
     status: row.status,
     total: row.total,
-    items: (row.items || []).map((item: any) => ({
+    items: (row.items || []).map((item: OrderItemRow) => ({
       productId: item.product_id,
       name: item.name,
       price: item.price,
@@ -137,7 +145,7 @@ function mapDbOrder(row: any): Order {
   }
 }
 
-function mapDbCoupon(row: any): Coupon {
+function mapDbCoupon(row: CouponRow): Coupon {
   return {
     id: row.id,
     code: row.code,
@@ -151,7 +159,7 @@ function mapDbCoupon(row: any): Coupon {
   }
 }
 
-function mapDbBanner(row: any): Banner {
+function mapDbBanner(row: BannerRow): Banner {
   return {
     id: row.id,
     title: row.title,
@@ -163,7 +171,7 @@ function mapDbBanner(row: any): Banner {
   }
 }
 
-function mapDbRole(row: any): Role {
+function mapDbRole(row: RoleRow): Role {
   return {
     id: row.id,
     name: row.name,
@@ -172,7 +180,7 @@ function mapDbRole(row: any): Role {
   }
 }
 
-function mapDbCustomer(row: any): Customer {
+function mapDbCustomer(row: CustomerRow): Customer {
   return {
     id: row.id,
     name: row.name,
@@ -251,12 +259,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    refreshProducts()
-    refreshOrders()
-    refreshCoupons()
-    refreshCustomers()
-    refreshBanners()
-    refreshRoles()
+    const timeoutId = window.setTimeout(() => {
+      void Promise.all([
+        refreshProducts(),
+        refreshOrders(),
+        refreshCoupons(),
+        refreshCustomers(),
+        refreshBanners(),
+        refreshRoles(),
+      ])
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshRoles])
 
   const uploadImage = useCallback(async (file: File, path: string) => {
@@ -304,7 +318,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const updateProduct = useCallback(async (id: number, product: Partial<Product>) => {
     if (!isSupabaseConfigured()) return false
-    const updateData: any = {}
+    const updateData: Partial<ProductRow> = {}
     if (product.name !== undefined) updateData.name = product.name
     if (product.price !== undefined) updateData.price = product.price
     if (product.image !== undefined) updateData.image = product.image
@@ -374,7 +388,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const updateCoupon = useCallback(async (id: string, coupon: Partial<Coupon>) => {
     if (!isSupabaseConfigured()) return false
-    const updateData: any = {}
+    const updateData: Partial<CouponRow> = {}
     if (coupon.code !== undefined) updateData.code = coupon.code
     if (coupon.discount !== undefined) updateData.discount = coupon.discount
     if (coupon.type !== undefined) updateData.type = coupon.type
@@ -411,7 +425,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const updateBanner = useCallback(async (id: string, banner: Partial<Banner>) => {
     if (!isSupabaseConfigured()) return false
-    const updateData: any = {}
+    const updateData: Partial<BannerRow> = {}
     if (banner.title !== undefined) updateData.title = banner.title
     if (banner.image !== undefined) updateData.image = banner.image
     if (banner.link !== undefined) updateData.link = banner.link
@@ -443,7 +457,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const updateRole = useCallback(async (id: string, role: Partial<Role>) => {
     if (!isSupabaseConfigured()) return false
-    const updateData: any = {}
+    const updateData: Partial<RoleRow> = {}
     if (role.name !== undefined) updateData.name = role.name
     if (role.color !== undefined) updateData.color = role.color
     if (role.permissions !== undefined) updateData.permissions = role.permissions
@@ -499,12 +513,4 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       {children}
     </AdminContext.Provider>
   )
-}
-
-export function useAdmin() {
-  const context = useContext(AdminContext)
-  if (!context) {
-    throw new Error('useAdmin must be used within an AdminProvider')
-  }
-  return context
 }

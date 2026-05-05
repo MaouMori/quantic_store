@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ShoppingCart, Heart, Sparkles } from 'lucide-react'
 import { products } from '../data/storeData'
-import { useCart } from '../context/CartContext'
+import { useCart } from '../context/useCart'
 
 export default function BestSellers() {
   const [startIndex, setStartIndex] = useState(0)

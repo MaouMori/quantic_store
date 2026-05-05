@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { AuthContext } from './authContextValue'
 
 export interface User {
   id: string
@@ -11,50 +13,103 @@ export interface User {
   permissions: string[]
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isAdmin: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>
   logout: () => Promise<void>
   signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+type ProfileRow = {
+  id: string
+  name: string | null
+  email: string | null
+  avatar: string | null
+  role: string | null
+  role_color: string | null
+  permissions: string[] | null
+}
 
 // Check if Supabase is configured
 const isSupabaseConfigured = () => {
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 }
 
+const getAuthUserName = (authUser: SupabaseUser) => {
+  const metadataName = authUser.user_metadata?.name
+  if (typeof metadataName === 'string' && metadataName.trim()) return metadataName
+  return authUser.email?.split('@')[0] || 'Usuario'
+}
+
+const mapProfileToUser = (profile: ProfileRow, authUser?: SupabaseUser): User => ({
+  id: profile.id,
+  name: profile.name || (authUser ? getAuthUserName(authUser) : 'Usuario'),
+  email: profile.email || authUser?.email || '',
+  avatar: profile.avatar || '/avatars/default.jpg',
+  role: profile.role || 'Cliente',
+  roleColor: profile.role_color || '#ff2d95',
+  permissions: profile.permissions || [],
+})
+
+const buildFallbackUser = (authUser: SupabaseUser): User => ({
+  id: authUser.id,
+  name: getAuthUserName(authUser),
+  email: authUser.email || '',
+  avatar: '/avatars/default.jpg',
+  role: 'Cliente',
+  roleColor: '#ff2d95',
+  permissions: [],
+})
+
+const getErrorMessage = (err: unknown) => {
+  return err instanceof Error ? err.message : 'Erro ao conectar com o servidor.'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(isSupabaseConfigured())
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (authUser: SupabaseUser) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
-      .single()
+      .eq('id', authUser.id)
+      .maybeSingle<ProfileRow>()
 
-    if (error || !data) return null
+    if (error) {
+      console.warn('Erro ao buscar perfil do usuario:', error.message)
+      return buildFallbackUser(authUser)
+    }
 
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      avatar: data.avatar || '/avatars/default.jpg',
-      role: data.role || 'Cliente',
-      roleColor: data.role_color || '#ff2d95',
-      permissions: data.permissions || [],
-    } as User
+    if (data) return mapProfileToUser(data, authUser)
+
+    const fallbackUser = buildFallbackUser(authUser)
+    const { data: createdProfile, error: createError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: authUser.id,
+        name: fallbackUser.name,
+        email: fallbackUser.email,
+        role: fallbackUser.role,
+        role_color: fallbackUser.roleColor,
+        permissions: fallbackUser.permissions,
+      }, { onConflict: 'id' })
+      .select('*')
+      .maybeSingle<ProfileRow>()
+
+    if (createError) {
+      console.warn('Erro ao criar perfil do usuario:', createError.message)
+      return fallbackUser
+    }
+
+    return createdProfile ? mapProfileToUser(createdProfile, authUser) : fallbackUser
   }, [])
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      setIsLoading(false)
       return
     }
 
@@ -62,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
-          const profile = await fetchProfile(session.user.id)
+          const profile = await fetchProfile(session.user)
           setUser(profile)
         }
       } catch (err) {
@@ -76,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          const profile = await fetchProfile(session.user.id)
+          const profile = await fetchProfile(session.user)
           setUser(profile)
         } else {
           setUser(null)
@@ -97,20 +152,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: { name },
+        emailRedirectTo: `${window.location.origin}/admin/login`,
       },
     })
 
     if (error) return { success: false, error: error.message }
 
     if (data.user) {
-      await supabase.from('profiles').insert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         name,
         email,
         role: 'Cliente',
         role_color: '#ff2d95',
         permissions: [],
-      })
+      }, { onConflict: 'id' })
+
+      if (profileError) {
+        return { success: false, error: `Conta criada, mas o perfil nao foi salvo: ${profileError.message}` }
+      }
     }
 
     return { success: true }
@@ -130,13 +190,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) return { success: false, error: error.message }
 
       if (data.user) {
-        const profile = await fetchProfile(data.user.id)
+        const profile = await fetchProfile(data.user)
         setUser(profile)
+        return { success: true, user: profile }
       }
 
       return { success: true }
-    } catch (err: any) {
-      return { success: false, error: err?.message || 'Erro ao conectar com o servidor.' }
+    } catch (err: unknown) {
+      return { success: false, error: getErrorMessage(err) }
     }
   }, [fetchProfile])
 
@@ -159,12 +220,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
 }

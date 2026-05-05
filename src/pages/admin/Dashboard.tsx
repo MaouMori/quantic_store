@@ -14,7 +14,7 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react'
-import { useAdmin } from '../../context/AdminContext'
+import { useAdmin } from '../../context/useAdmin'
 
 export default function Dashboard() {
   const { orders, activities, roles, products, isLoading, refreshProducts } = useAdmin()

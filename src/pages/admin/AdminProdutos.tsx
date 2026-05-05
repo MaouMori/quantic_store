@@ -12,7 +12,7 @@ import {
   Save,
   Upload,
 } from 'lucide-react'
-import { useAdmin } from '../../context/AdminContext'
+import { useAdmin } from '../../context/useAdmin'
 import type { Product } from '../../data/storeData'
 
 export default function AdminProdutos() {

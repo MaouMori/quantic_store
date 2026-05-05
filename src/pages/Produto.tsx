@@ -12,7 +12,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { getProductById, getRelatedProducts } from '../data/storeData'
-import { useCart } from '../context/CartContext'
+import { useCart } from '../context/useCart'
 
 export default function Produto() {
   const { id } = useParams<{ id: string }>()
