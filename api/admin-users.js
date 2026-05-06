@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 const normalizeEmail = (email = '') =>
   email.normalize('NFKC').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase()
 
+const getBearerToken = request => {
+  const header = request.headers.authorization || ''
+  return header.startsWith('Bearer ') ? header.slice(7) : ''
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.status(405).json({ error: 'Method not allowed' })
@@ -28,6 +33,29 @@ export default async function handler(request, response) {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+
+  const token = getBearerToken(request)
+  if (!token) {
+    response.status(401).json({ error: 'Sessao de administrador obrigatoria.' })
+    return
+  }
+
+  const { data: authData, error: authError } = await admin.auth.getUser(token)
+  if (authError || !authData.user) {
+    response.status(401).json({ error: 'Sessao invalida ou expirada.' })
+    return
+  }
+
+  const { data: requester, error: requesterError } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', authData.user.id)
+    .maybeSingle()
+
+  if (requesterError || requester?.role !== 'Administrador') {
+    response.status(403).json({ error: 'Apenas administradores podem criar usuarios pelo painel.' })
+    return
+  }
 
   const { data, error } = await admin.auth.admin.createUser({
     email: normalizedEmail,

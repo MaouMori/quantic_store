@@ -90,6 +90,21 @@ const getErrorMessage = (err: unknown) => {
   return err instanceof Error ? getAuthErrorMessage(err.message) : 'Erro ao conectar com o servidor.'
 }
 
+const createUserThroughServer = async (email: string, password: string, name: string) => {
+  const response = await fetch('/api/register-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, name }),
+  })
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    return { success: false, error: data.error || 'Nao foi possivel criar a conta pelo servidor.' }
+  }
+
+  return { success: true }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured())
@@ -181,7 +196,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     })
 
-    if (error) return { success: false, error: getAuthErrorMessage(error.message) }
+    if (error) {
+      const serverResult = await createUserThroughServer(normalizedEmail, password, normalizedName)
+      if (serverResult.success) return { success: true }
+      return { success: false, error: serverResult.error || getAuthErrorMessage(error.message) }
+    }
 
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').upsert({
