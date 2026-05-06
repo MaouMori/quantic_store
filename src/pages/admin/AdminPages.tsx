@@ -4,6 +4,7 @@ import { CreditCard, History, ClipboardList, Settings, MessageSquare, FileText, 
 import { useAdmin } from '../../context/useAdmin'
 import { AdminFeedback } from '../../components/admin/AdminFeedback'
 import { supabase } from '../../lib/supabase'
+import { DEFAULT_DISCORD_URL, slugifyHelpTitle, useHelpTopics, type HelpTopic } from '../../lib/siteConfig'
 
 export default function AdminClientes() {
   const { customers } = useAdmin()
@@ -336,15 +337,113 @@ export function AdminPermissoes() {
 }
 
 export function AdminPaginas() {
+  const { topics, refresh } = useHelpTopics()
+  const [editing, setEditing] = useState<HelpTopic | null>(null)
+  const [form, setForm] = useState({ title: '', answer: '', sortOrder: 1, active: true })
+  const [saving, setSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const resetForm = () => {
+    setEditing(null)
+    setForm({ title: '', answer: '', sortOrder: topics.length + 1, active: true })
+  }
+
+  const startEdit = (topic: HelpTopic) => {
+    setEditing(topic)
+    setForm({ title: topic.title, answer: topic.answer, sortOrder: topic.sortOrder, active: topic.active })
+  }
+
+  const saveTopic = async () => {
+    const title = form.title.trim()
+    const answer = form.answer.trim()
+    if (!title || !answer) {
+      setFeedback({ type: 'error', message: 'Preencha titulo e resposta.' })
+      return
+    }
+
+    setSaving(true)
+    const { error } = await supabase.from('help_topics').upsert({
+      id: editing?.id || slugifyHelpTitle(title),
+      title,
+      answer,
+      sort_order: form.sortOrder,
+      active: form.active,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' })
+    setSaving(false)
+
+    if (error) {
+      setFeedback({ type: 'error', message: error.message })
+      return
+    }
+
+    setFeedback({ type: 'success', message: 'Topico de ajuda salvo.' })
+    resetForm()
+    await refresh()
+  }
+
+  const deleteTopic = async (id: string) => {
+    if (!confirm('Apagar este topico de ajuda?')) return
+    const { error } = await supabase.from('help_topics').delete().eq('id', id)
+    if (error) {
+      setFeedback({ type: 'error', message: error.message })
+      return
+    }
+    setFeedback({ type: 'success', message: 'Topico apagado.' })
+    await refresh()
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-xl text-text-main">Paginas</h1>
-        <p className="text-text-dim text-sm">Gerencie paginas do site</p>
+        <p className="text-text-dim text-sm">Gerencie os topicos que aparecem na pagina de Ajuda e no rodape</p>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <FileText className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Gerenciamento de paginas em desenvolvimento.</p>
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
+        <div className="review-card rounded-xl p-5 space-y-4 h-fit">
+          <h2 className="font-heading font-bold text-text-main flex items-center gap-2">
+            <FileText className="w-5 h-5 text-neon-pink" />
+            {editing ? 'Editar topico' : 'Novo topico'}
+          </h2>
+          <input value={form.title} onChange={event => setForm(prev => ({ ...prev, title: event.target.value }))}
+            placeholder="Titulo do topico" className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+          <textarea value={form.answer} onChange={event => setForm(prev => ({ ...prev, answer: event.target.value }))}
+            placeholder="Resposta que aparece na pagina de ajuda" rows={6}
+            className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main resize-none" />
+          <div className="grid grid-cols-2 gap-3">
+            <input type="number" min="1" value={form.sortOrder} onChange={event => setForm(prev => ({ ...prev, sortOrder: Number(event.target.value) }))}
+              className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+            <label className="flex items-center gap-2 text-sm text-text-muted">
+              <input type="checkbox" checked={form.active} onChange={event => setForm(prev => ({ ...prev, active: event.target.checked }))} className="accent-neon-pink" />
+              Visivel
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={saveTopic} disabled={saving} className="bg-neon-pink text-white rounded-lg px-4 py-2 flex items-center gap-2 disabled:opacity-50">
+              <Save className="w-4 h-4" /> {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+            {editing && <button onClick={resetForm} className="text-text-muted hover:text-text-main px-3 py-2">Cancelar</button>}
+          </div>
+        </div>
+
+        <div className="review-card rounded-xl p-5 space-y-3">
+          {topics.map(topic => (
+            <div key={topic.id} className="rounded-lg border border-neon-pink/10 bg-void-light p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-heading font-bold text-text-main">{topic.title}</h3>
+                  <p className="text-text-dim text-xs mt-1">Ordem {topic.sortOrder} - {topic.active ? 'Visivel' : 'Oculto'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => startEdit(topic)} className="text-neon-pink text-sm">Editar</button>
+                  <button onClick={() => deleteTopic(topic.id)} className="text-red-400 text-sm">Apagar</button>
+                </div>
+              </div>
+              <p className="text-text-muted text-sm mt-3 line-clamp-2">{topic.answer}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -438,15 +537,53 @@ export function AdminDepoimentos() {
 }
 
 export function AdminConfiguracoes() {
+  const [discordUrl, setDiscordUrl] = useState(DEFAULT_DISCORD_URL)
+  const [saving, setSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        const { data } = await supabase.from('site_settings').select('value').eq('key', 'discord_url').maybeSingle<{ value: string }>()
+        if (data?.value) setDiscordUrl(data.value)
+      })()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  const saveSettings = async () => {
+    setSaving(true)
+    const { error } = await supabase.from('site_settings').upsert({
+      key: 'discord_url',
+      value: discordUrl.trim() || DEFAULT_DISCORD_URL,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' })
+    setSaving(false)
+    setFeedback(error
+      ? { type: 'error', message: error.message }
+      : { type: 'success', message: 'Configuracoes salvas.' })
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-xl text-text-main">Configuracoes do Site</h1>
         <p className="text-text-dim text-sm">Configure informacoes gerais</p>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <Settings className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Configuracoes em desenvolvimento.</p>
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
+      <div className="review-card rounded-xl p-5 max-w-2xl">
+        <h2 className="font-heading font-bold text-text-main mb-4 flex items-center gap-2">
+          <Settings className="w-5 h-5 text-neon-pink" />
+          Links oficiais
+        </h2>
+        <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-2">Link do Discord</label>
+        <input value={discordUrl} onChange={event => setDiscordUrl(event.target.value)}
+          placeholder="https://discord.gg/seu-servidor"
+          className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+        <p className="text-text-dim text-xs mt-2">Esse link alimenta todos os botoes de Entrar no Discord do site.</p>
+        <button onClick={saveSettings} disabled={saving} className="mt-4 bg-neon-pink text-white rounded-lg px-4 py-2 flex items-center gap-2 disabled:opacity-50">
+          <Save className="w-4 h-4" /> {saving ? 'Salvando...' : 'Salvar configuracoes'}
+        </button>
       </div>
     </div>
   )

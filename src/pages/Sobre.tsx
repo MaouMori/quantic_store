@@ -12,7 +12,7 @@ export default function Sobre() {
           <Heart className="w-6 h-6 text-neon-pink fill-neon-pink" />
         </div>
         <p className="text-text-muted max-w-2xl mx-auto">
-          Criando estilo e atitude para o universo FiveM desde 2024.
+          Criando estilo e atitude para o universo FiveM.
         </p>
       </div>
 

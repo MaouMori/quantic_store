@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom'
 import { Heart, MessageCircle, Zap, Shield, Lock, Diamond } from 'lucide-react'
+import { useHelpTopics } from '../lib/siteConfig'
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear()
+  const { topics } = useHelpTopics()
+  const helpLinks = topics.filter(topic => topic.active).slice(0, 4)
+
   return (
     <footer className="border-t border-neon-pink/10">
-      {/* Features bar */}
       <div className="border-b border-neon-pink/10 bg-void-light/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -22,12 +26,12 @@ export default function Footer() {
               {
                 icon: Lock,
                 title: 'PAGAMENTO SEGURO',
-                desc: 'Ambiente 100% seguro. Seus dados protegidos.',
+                desc: 'Pagamento por Pix com comprovante e conferencia do pedido.',
               },
               {
                 icon: Diamond,
                 title: 'PRODUTOS EXCLUSIVOS',
-                desc: 'Tudo feito com muito carinho e criatividade para voce.',
+                desc: 'Itens digitais criados com identidade propria para voce.',
               },
             ].map(f => (
               <div key={f.title} className="flex items-start gap-3">
@@ -44,10 +48,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
-          {/* Brand */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2 mb-3">
               <span className="font-display text-2xl text-neon-pink tracking-wider">QUANTIC</span>
@@ -56,20 +58,8 @@ export default function Footer() {
             <p className="text-text-dim text-xs leading-relaxed">
               Estilo, atitude e autenticidade em cada detalhe.
             </p>
-            <div className="flex gap-2 mt-3">
-              {['💀', '💖', '⚡'].map((emoji, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-8 h-8 rounded-full bg-void-lighter border border-neon-pink/10 flex items-center justify-center text-text-dim hover:text-neon-pink hover:border-neon-pink/30 transition-all"
-                >
-                  <span className="text-sm">{emoji}</span>
-                </a>
-              ))}
-            </div>
           </div>
 
-          {/* Links Rapidos */}
           <div>
             <h3 className="font-heading font-bold text-xs text-text-main tracking-wider mb-3">LINKS RAPIDOS</h3>
             <ul className="space-y-1.5">
@@ -78,14 +68,12 @@ export default function Footer() {
                 { path: '/loja', label: 'Loja' },
                 { path: '/colecoes', label: 'Colecoes' },
                 { path: '/sobre', label: 'Sobre' },
+                { path: '/ajuda', label: 'Ajuda' },
                 { path: '/termos', label: 'Termos' },
               ].map(link => (
                 <li key={link.path}>
-                  <Link
-                    to={link.path}
-                    className="text-text-dim text-xs hover:text-neon-pink transition-colors flex items-center gap-1"
-                  >
-                    <span className="text-neon-pink/50">•</span>
+                  <Link to={link.path} className="text-text-dim text-xs hover:text-neon-pink transition-colors flex items-center gap-1">
+                    <span className="text-neon-pink/50">-</span>
                     {link.label}
                   </Link>
                 </li>
@@ -93,45 +81,29 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Ajuda */}
           <div>
             <h3 className="font-heading font-bold text-xs text-text-main tracking-wider mb-3">AJUDA</h3>
             <ul className="space-y-1.5">
-              {[
-                'Perguntas Frequentes',
-                'Como comprar',
-                'Trocas e Devolucoes',
-                'Fale Conosco (Discord)',
-              ].map(item => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-text-dim text-xs hover:text-neon-pink transition-colors flex items-center gap-1"
-                  >
-                    <span className="text-neon-pink/50">•</span>
-                    {item}
-                  </a>
+              {helpLinks.map(item => (
+                <li key={item.id}>
+                  <Link to={`/ajuda#${item.id}`} className="text-text-dim text-xs hover:text-neon-pink transition-colors flex items-center gap-1">
+                    <span className="text-neon-pink/50">-</span>
+                    {item.title}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Pagamentos */}
           <div>
             <h3 className="font-heading font-bold text-xs text-text-main tracking-wider mb-3">PAGAMENTOS</h3>
             <div className="flex flex-wrap gap-1.5">
-              {['Pix', 'Cartao de Credito', 'VISA', 'Mastercard', 'elo'].map(p => (
-                <span
-                  key={p}
-                  className="px-2 py-1 rounded bg-void-lighter border border-neon-pink/10 text-text-muted text-[10px] font-mono"
-                >
-                  {p}
-                </span>
-              ))}
+              <span className="px-2 py-1 rounded bg-void-lighter border border-neon-pink/10 text-text-muted text-[10px] font-mono">
+                Pix
+              </span>
             </div>
           </div>
 
-          {/* Seguranca */}
           <div>
             <h3 className="font-heading font-bold text-xs text-text-main tracking-wider mb-3">SEGURANCA</h3>
             <div className="flex items-start gap-2">
@@ -143,14 +115,13 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom */}
         <div className="mt-10 pt-5 border-t border-neon-pink/10 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-text-dim text-[11px]">
-            © 2024 Quantic Store. Todos os direitos reservados.
+            © {currentYear} Quantic Store. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-1.5">
             <Heart className="w-3 h-3 text-neon-pink fill-neon-pink" />
-            <span className="text-text-dim text-[11px]">Feito com amor</span>
+            <span className="text-text-dim text-[11px]">Feito por Maou</span>
           </div>
         </div>
       </div>

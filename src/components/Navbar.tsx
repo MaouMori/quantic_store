@@ -30,6 +30,7 @@ export default function Navbar({ onCartClick }: NavbarProps) {
     { path: '/loja', label: 'LOJA' },
     { path: '/colecoes', label: 'COLECOES' },
     { path: '/sobre', label: 'SOBRE' },
+    { path: '/ajuda', label: 'AJUDA' },
     { path: '/termos', label: 'TERMOS' },
   ]
 

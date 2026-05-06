@@ -23,6 +23,7 @@ import { categories as defaultCategories } from '../data/storeData'
 import type { Product } from '../data/storeData'
 import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
+import { useDiscordUrl } from '../lib/siteConfig'
 
 const getFinalPrice = (price: number, discountPercent = 0) => {
   const safeDiscount = Math.min(100, Math.max(0, discountPercent))
@@ -41,6 +42,7 @@ const categoryIcons: Record<string, typeof Package> = {
 }
 
 export default function Colecoes() {
+  const discordUrl = useDiscordUrl()
   const { banners, storeCollections, products, productCategories } = useAdmin()
   const { addItem } = useCart()
   const [selectedCategory, setSelectedCategory] = useState('todos')
@@ -317,7 +319,7 @@ export default function Colecoes() {
               </div>
             </div>
             <a
-              href="https://discord.gg/quanticstore"
+              href={discordUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-neon-pink px-6 py-3 text-sm font-heading font-bold uppercase tracking-wider text-white shadow-lg shadow-neon-pink/25 hover:bg-hot-pink transition-colors"

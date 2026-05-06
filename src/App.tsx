@@ -9,6 +9,7 @@ import Colecoes from './pages/Colecoes'
 import ColecaoDetalhe from './pages/ColecaoDetalhe'
 import Sobre from './pages/Sobre'
 import Termos from './pages/Termos'
+import Ajuda from './pages/Ajuda'
 import MeusPedidos from './pages/MeusPedidos'
 import Feedback from './pages/Feedback'
 import Checkout from './pages/Checkout'
@@ -120,6 +121,7 @@ function AppContent() {
                 <Route path="/colecoes/:id" element={<ColecaoDetalhe />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/termos" element={<Termos />} />
+                <Route path="/ajuda" element={<Ajuda />} />
                 <Route path="/meus-pedidos" element={<MeusPedidos />} />
                 <Route path="/feedback" element={<Feedback />} />
                 <Route path="/checkout" element={<Checkout />} />

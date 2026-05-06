@@ -1,6 +1,9 @@
 import { MessageCircle, Mail } from 'lucide-react'
+import { useDiscordUrl } from '../lib/siteConfig'
 
 export default function DiscordCTA() {
+  const discordUrl = useDiscordUrl()
+
   return (
     <section className="py-12 lg:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,7 +33,7 @@ export default function DiscordCTA() {
 
             {/* Right - Button */}
             <a
-              href="https://discord.gg/quanticstore"
+              href={discordUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-shrink-0 inline-flex items-center gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white px-6 py-3 rounded-xl font-heading font-bold text-sm tracking-wider transition-all btn-shine"

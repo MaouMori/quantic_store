@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
+import { useDiscordUrl } from '../lib/siteConfig'
 
 const getFinalPrice = (price: number, discountPercent = 0) => {
   const safeDiscount = Math.min(100, Math.max(0, discountPercent))
@@ -31,6 +32,7 @@ export default function ColecaoDetalhe() {
   const { id } = useParams<{ id: string }>()
   const { storeCollections, products, productCategories, productColors } = useAdmin()
   const { addItem } = useCart()
+  const discordUrl = useDiscordUrl()
   const [sortBy, setSortBy] = useState('recentes')
   const [liked, setLiked] = useState<Set<number>>(new Set())
 
@@ -148,7 +150,7 @@ export default function ColecaoDetalhe() {
                   </div>
                 </div>
                 <a
-                  href="https://discord.gg/quanticstore"
+                  href={discordUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="bg-neon-pink hover:bg-hot-pink text-white px-4 py-3 rounded-lg font-heading font-bold text-xs tracking-wider transition-all flex items-center justify-center gap-2 whitespace-nowrap"
