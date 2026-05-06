@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getAuthErrorMessage } from '../../lib/authErrors'
 import { useAuth } from '../../context/useAuth'
-import { LogIn, Eye, EyeOff, Skull, UserPlus, ArrowLeft } from 'lucide-react'
+import { LogIn, Eye, EyeOff, Skull, UserPlus, ArrowLeft, Home } from 'lucide-react'
 
 export default function Login() {
   const { login, logout, signUp } = useAuth()
@@ -89,14 +89,23 @@ export default function Login() {
         </div>
 
         <div className="review-card rounded-2xl p-6 sm:p-8">
-          {mode !== 'login' && (
-            <button
-              onClick={() => { setMode('login'); setError(''); setSuccess('') }}
-              className="flex items-center gap-1 text-text-dim hover:text-neon-pink text-sm mb-4 transition-colors"
+          <div className="flex items-center justify-between gap-3 mb-4">
+            {mode !== 'login' ? (
+              <button
+                onClick={() => { setMode('login'); setError(''); setSuccess('') }}
+                className="flex items-center gap-1 text-text-dim hover:text-neon-pink text-sm transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </button>
+            ) : <span />}
+            <Link
+              to="/"
+              className="flex items-center gap-1 text-text-dim hover:text-neon-pink text-sm transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" /> Voltar
-            </button>
-          )}
+              <Home className="w-4 h-4" />
+              Voltar ao site
+            </Link>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === 'register' && (
