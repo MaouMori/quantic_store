@@ -70,6 +70,8 @@ function ScrollToTop() {
 
 function AppContent() {
   const [cartOpen, setCartOpen] = useState(false)
+  const location = useLocation()
+  const hideStoreChrome = location.pathname === '/login'
 
   useEffect(() => {
     if (cartOpen) {
@@ -121,7 +123,7 @@ function AppContent() {
         element={
           <div className="min-h-screen bg-void text-text-main font-body relative">
             <div className="noise-overlay" />
-            <Navbar onCartClick={() => setCartOpen(true)} />
+            {!hideStoreChrome && <Navbar onCartClick={() => setCartOpen(true)} />}
             
             <main>
               <Routes>
@@ -141,8 +143,8 @@ function AppContent() {
               </Routes>
             </main>
             
-            <Footer />
-            <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+            {!hideStoreChrome && <Footer />}
+            {!hideStoreChrome && <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />}
           </div>
         }
       />
