@@ -140,7 +140,18 @@ export default function Loja() {
   )
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div>
+      {pageBanners.length > 0 && (
+        <div className="mb-8">
+          {pageBanners.map(banner => (
+            <div key={banner.id} className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] overflow-hidden bg-void">
+              <img src={banner.image} alt={banner.title || 'Banner'} className="w-full h-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] object-cover object-center" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Page Header */}
       <div className="text-center mb-8">
         <h1 className="font-display text-3xl sm:text-4xl text-white tracking-wide mb-2">
@@ -150,16 +161,6 @@ export default function Loja() {
           Pecas exclusivas para voce expressar quem e, do seu jeito.
         </p>
       </div>
-
-      {pageBanners.length > 0 && (
-        <div className="space-y-4 mb-8">
-          {pageBanners.map(banner => (
-            <div key={banner.id} className="max-w-[1320px] mx-auto aspect-[55/32] max-h-[768px] overflow-hidden bg-void">
-              <img src={banner.image} alt={banner.title || 'Banner'} className="w-full h-full object-contain object-center" />
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Filters */}
@@ -578,6 +579,7 @@ export default function Loja() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

@@ -33,13 +33,13 @@ export default function HeroSlider() {
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
-      <div className="relative max-w-[1320px] mx-auto aspect-[55/32] max-h-[768px] overflow-hidden">
+      <div className="relative w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] overflow-hidden">
         {heroSlides.map((s, index) => {
           const image = (
             <img
               src={s.image}
               alt={s.title || 'Banner'}
-              className="w-full h-full object-contain object-center"
+              className="w-full h-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] object-cover object-center"
               onError={(e) => {
                 const target = e.target as HTMLImageElement
                 target.style.display = 'none'
