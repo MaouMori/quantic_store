@@ -26,14 +26,27 @@ export default function HeroSlider() {
   }, [heroSlides.length, isAutoPlaying, nextSlide])
 
   if (heroSlides.length === 0) return null
+  const activeSlide = heroSlides[activeIndex]
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-void"
+      className="relative w-full min-h-[calc(100vh-5rem)] overflow-hidden bg-void flex items-center"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
-      <div className="relative w-full max-w-[1920px] mx-auto h-[clamp(260px,56.25vw,720px)] overflow-hidden">
+      <div className="absolute inset-0">
+        <img
+          src={activeSlide.image}
+          alt=""
+          aria-hidden="true"
+          className="w-full h-full object-cover object-center opacity-35 scale-105"
+        />
+        <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-void via-void/25 to-void/75" />
+        <div className="absolute inset-0 bg-gradient-to-r from-void via-transparent to-void" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[1920px] mx-auto h-[clamp(260px,56.25vw,720px)] overflow-hidden">
         {heroSlides.map((s, index) => {
           const image = (
             <img
