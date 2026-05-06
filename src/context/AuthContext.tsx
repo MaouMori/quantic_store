@@ -20,8 +20,12 @@ export interface AuthContextType {
   isAdmin: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>
+  loginWithDiscord: () => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  updateProfile: (profile: { name?: string; avatar?: string }) => Promise<{ success: boolean; error?: string }>
+  updateEmail: (email: string) => Promise<{ success: boolean; error?: string }>
+  updatePassword: (password: string) => Promise<{ success: boolean; error?: string }>
 }
 
 type ProfileRow = {
@@ -62,8 +66,17 @@ const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, messa
 
 const getAuthUserName = (authUser: SupabaseUser) => {
   const metadataName = authUser.user_metadata?.name
+  const fullName = authUser.user_metadata?.full_name
+  const preferredName = authUser.user_metadata?.preferred_username
   if (typeof metadataName === 'string' && metadataName.trim()) return metadataName
+  if (typeof fullName === 'string' && fullName.trim()) return fullName
+  if (typeof preferredName === 'string' && preferredName.trim()) return preferredName
   return authUser.email?.split('@')[0] || 'Usuario'
+}
+
+const getAuthUserAvatar = (authUser: SupabaseUser) => {
+  const avatarUrl = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture
+  return typeof avatarUrl === 'string' && avatarUrl.trim() ? avatarUrl : '/avatars/default.jpg'
 }
 
 const mapProfileToUser = (profile: ProfileRow, authUser?: SupabaseUser): User => ({
@@ -80,7 +93,7 @@ const buildFallbackUser = (authUser: SupabaseUser): User => ({
   id: authUser.id,
   name: getAuthUserName(authUser),
   email: authUser.email || '',
-  avatar: '/avatars/default.jpg',
+  avatar: getAuthUserAvatar(authUser),
   role: 'Cliente',
   roleColor: '#ff2d95',
   permissions: [],
@@ -126,7 +139,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data) return mapProfileToUser(data, authUser)
-    return buildFallbackUser(authUser)
+
+    const fallback = buildFallbackUser(authUser)
+    const { error: upsertError } = await supabase.from('profiles').upsert({
+      id: authUser.id,
+      name: fallback.name,
+      email: fallback.email,
+      avatar: fallback.avatar,
+      role: 'Cliente',
+      role_color: '#ff2d95',
+      permissions: [],
+    }, { onConflict: 'id' })
+
+    if (upsertError) console.warn('Erro ao criar perfil do usuario:', upsertError.message)
+    return fallback
   }, [])
 
   useEffect(() => {
@@ -192,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: { name: normalizedName },
-        emailRedirectTo: `${window.location.origin}/admin/login`,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     })
 
@@ -258,6 +284,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchProfile])
 
+  const loginWithDiscord = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: 'Supabase nao configurado. Verifique as variaveis de ambiente.' }
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    })
+
+    if (error) return { success: false, error: getAuthErrorMessage(error.message) }
+    return { success: true }
+  }, [])
+
+  const updateProfile = useCallback(async (profile: { name?: string; avatar?: string }) => {
+    if (!user) return { success: false, error: 'Entre na conta para alterar o perfil.' }
+    const nextName = profile.name?.trim() || user.name
+    const nextAvatar = profile.avatar || user.avatar
+
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
+      name: nextName,
+      email: user.email,
+      avatar: nextAvatar,
+      role: user.role,
+      role_color: user.roleColor,
+      permissions: user.permissions,
+    }, { onConflict: 'id' })
+
+    if (error) return { success: false, error: error.message }
+    setUser(prev => prev ? { ...prev, name: nextName, avatar: nextAvatar } : prev)
+    await supabase.auth.updateUser({ data: { name: nextName, avatar_url: nextAvatar } })
+    return { success: true }
+  }, [user])
+
+  const updateEmail = useCallback(async (email: string) => {
+    if (!user) return { success: false, error: 'Entre na conta para alterar o email.' }
+    const normalizedEmail = normalizeEmail(email)
+    if (!isValidEmail(normalizedEmail)) {
+      return { success: false, error: 'Email invalido. Confira se nao ha espacos ou caracteres errados.' }
+    }
+
+    const { error } = await supabase.auth.updateUser({ email: normalizedEmail })
+    if (error) return { success: false, error: getAuthErrorMessage(error.message) }
+
+    const profile = await supabase.from('profiles').update({ email: normalizedEmail }).eq('id', user.id)
+    if (profile.error) return { success: false, error: profile.error.message }
+
+    setUser(prev => prev ? { ...prev, email: normalizedEmail } : prev)
+    return { success: true }
+  }, [user])
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (!user) return { success: false, error: 'Entre na conta para alterar a senha.' }
+    if (password.length < 6) return { success: false, error: 'A senha precisa ter pelo menos 6 caracteres.' }
+
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) return { success: false, error: getAuthErrorMessage(error.message) }
+    return { success: true }
+  }, [user])
+
   const logout = useCallback(async () => {
     if (!isSupabaseConfigured()) {
       setUser(null)
@@ -272,7 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, isAdmin, isLoading, login, logout, signUp }}
+      value={{ user, isAuthenticated, isAdmin, isLoading, login, loginWithDiscord, logout, signUp, updateProfile, updateEmail, updatePassword }}
     >
       {children}
     </AuthContext.Provider>

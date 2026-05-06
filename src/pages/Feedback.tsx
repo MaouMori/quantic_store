@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Heart, Send, Star } from 'lucide-react'
 import { useAdmin } from '../context/useAdmin'
 import { useAuth } from '../context/useAuth'
@@ -13,6 +13,16 @@ export default function Feedback() {
   const [text, setText] = useState('')
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (user) {
+        setName(user.name)
+        setEmail(user.email)
+      }
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [user])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PackageCheck, Search, ShoppingBag } from 'lucide-react'
 import { useAdmin } from '../context/useAdmin'
 import { useAuth } from '../context/useAuth'
@@ -15,6 +15,13 @@ export default function MeusPedidos() {
   const { user } = useAuth()
   const [email, setEmail] = useState(user?.email || '')
   const [discord, setDiscord] = useState('')
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (user?.email) setEmail(user.email)
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [user?.email])
 
   const filtered = useMemo(() => {
     const normalizedEmail = email.trim().toLowerCase()
@@ -37,6 +44,11 @@ export default function MeusPedidos() {
       </div>
 
       <div className="review-card rounded-xl p-5 mb-6">
+        {user && (
+          <p className="text-text-muted text-sm mb-3">
+            Logado como <span className="text-neon-pink">{user.name}</span>. Seus pedidos vinculados a esta conta aparecem automaticamente.
+          </p>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim" />

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Star, Heart } from 'lucide-react'
-import { reviews } from '../data/storeData'
 import { useAdmin } from '../context/useAdmin'
 
 export default function Reviews() {
@@ -9,15 +8,16 @@ export default function Reviews() {
   const [startIndex, setStartIndex] = useState(0)
   const trackRef = useRef<HTMLDivElement>(null)
   const approvedFeedbacks = feedbacks.filter(feedback => feedback.approved)
-  const visibleReviews = approvedFeedbacks.length > 0
-    ? approvedFeedbacks.map(feedback => ({
-        id: feedback.id,
-        name: feedback.name,
-        avatar: '/avatars/default.jpg',
-        rating: feedback.rating,
-        text: feedback.text,
-      }))
-    : reviews
+  const visibleReviews = approvedFeedbacks.map(feedback => ({
+    id: feedback.id,
+    name: feedback.name,
+    avatar: '/avatars/default.jpg',
+    rating: feedback.rating,
+    text: feedback.text,
+  }))
+  const averageRating = approvedFeedbacks.length > 0
+    ? approvedFeedbacks.reduce((sum, feedback) => sum + feedback.rating, 0) / approvedFeedbacks.length
+    : 0
 
   const visibleCount = typeof window !== 'undefined' && window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1
   const maxIndex = Math.max(0, visibleReviews.length - visibleCount)
@@ -50,8 +50,8 @@ export default function Reviews() {
                 <Star key={i} className="w-4 h-4 text-star fill-star" />
               ))}
             </div>
-            <span className="text-text-main font-bold">4.9</span>
-            <span className="text-text-dim text-sm">(312 avaliacoes)</span>
+            <span className="text-text-main font-bold">{averageRating.toFixed(1)}</span>
+            <span className="text-text-dim text-sm">({approvedFeedbacks.length} avaliacoes)</span>
             <Link to="/feedback" className="text-neon-pink text-sm hover:text-hot-pink transition-colors">
               Deixar feedback
             </Link>
@@ -59,7 +59,7 @@ export default function Reviews() {
         </div>
 
         {/* Carousel */}
-        <div className="relative">
+        {visibleReviews.length > 0 ? <div className="relative">
           <button
             onClick={prev}
             disabled={startIndex === 0}
@@ -122,10 +122,17 @@ export default function Reviews() {
           >
             <ChevronRight className="w-4 h-4" />
           </button>
-        </div>
+        </div> : (
+          <div className="rounded-xl border border-neon-pink/10 bg-void-light p-8 text-center">
+            <p className="text-text-muted">Nenhum feedback publicado ainda.</p>
+            <Link to="/feedback" className="inline-flex mt-3 text-neon-pink hover:text-hot-pink text-sm">
+              Seja a primeira pessoa a deixar feedback
+            </Link>
+          </div>
+        )}
 
         {/* Dots */}
-        <div className="flex justify-center gap-2 mt-6">
+        {visibleReviews.length > 0 && <div className="flex justify-center gap-2 mt-6">
           {Array.from({ length: maxIndex + 1 }).map((_, index) => (
             <button
               key={index}
@@ -137,7 +144,7 @@ export default function Reviews() {
               }`}
             />
           ))}
-        </div>
+        </div>}
       </div>
     </section>
   )

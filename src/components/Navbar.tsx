@@ -135,6 +135,14 @@ export default function Navbar({ onCartClick }: NavbarProps) {
                           </Link>
                         )}
                         <Link
+                          to="/minha-conta"
+                          onClick={() => setAccountOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          Minha conta
+                        </Link>
+                        <Link
                           to="/meus-pedidos"
                           onClick={() => setAccountOpen(false)}
                           className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors"
@@ -169,12 +177,12 @@ export default function Navbar({ onCartClick }: NavbarProps) {
                           Feedback
                         </Link>
                         <Link
-                          to="/admin/login"
+                          to="/login"
                           onClick={() => setAccountOpen(false)}
                           className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neon-pink hover:bg-neon-pink/10 transition-colors"
                         >
                           <LogIn className="w-4 h-4" />
-                          Admin
+                          Entrar
                         </Link>
                       </>
                     )}
@@ -183,12 +191,12 @@ export default function Navbar({ onCartClick }: NavbarProps) {
               </div>
 
               <Link
-                to={isAuthenticated && isAdmin ? '/admin' : '/admin/login'}
+                to={isAuthenticated && isAdmin ? '/admin' : isAuthenticated ? '/minha-conta' : '/login'}
                 className="hidden md:flex items-center gap-1.5 bg-neon-pink/10 hover:bg-neon-pink/20 border border-neon-pink/20 text-neon-pink px-3 py-1.5 rounded-lg text-xs font-heading font-bold tracking-wider transition-all"
-                title="Painel Administrativo"
+                title={isAuthenticated && isAdmin ? 'Painel Administrativo' : 'Minha conta'}
               >
                 <LogIn className="w-3.5 h-3.5" />
-                {isAuthenticated && isAdmin ? 'PAINEL' : isAuthenticated ? 'LOGADO' : 'LOGIN'}
+                {isAuthenticated && isAdmin ? 'PAINEL' : isAuthenticated ? 'CONTA' : 'LOGIN'}
               </Link>
 
               <button
@@ -257,12 +265,12 @@ export default function Navbar({ onCartClick }: NavbarProps) {
               FEEDBACK
             </Link>
             <Link
-              to={isAuthenticated && isAdmin ? '/admin' : '/admin/login'}
+              to={isAuthenticated && isAdmin ? '/admin' : isAuthenticated ? '/minha-conta' : '/login'}
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider text-neon-pink hover:bg-neon-pink/10 transition-colors"
             >
               {isAuthenticated && isAdmin ? <LayoutDashboard className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
-              {isAuthenticated && isAdmin ? 'PAINEL ADMIN' : isAuthenticated ? `LOGADO: ${user?.name}` : 'LOGIN'}
+              {isAuthenticated && isAdmin ? 'PAINEL ADMIN' : isAuthenticated ? `MINHA CONTA: ${user?.name}` : 'LOGIN'}
             </Link>
             {isAuthenticated && (
               <button

@@ -13,6 +13,8 @@ import Ajuda from './pages/Ajuda'
 import MeusPedidos from './pages/MeusPedidos'
 import Feedback from './pages/Feedback'
 import Checkout from './pages/Checkout'
+import StoreLogin from './pages/Login'
+import MinhaConta from './pages/MinhaConta'
 import CartDrawer from './components/CartDrawer'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
@@ -125,6 +127,8 @@ function AppContent() {
                 <Route path="/meus-pedidos" element={<MeusPedidos />} />
                 <Route path="/feedback" element={<Feedback />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/login" element={<StoreLogin />} />
+                <Route path="/minha-conta" element={<MinhaConta />} />
               </Routes>
             </main>
             

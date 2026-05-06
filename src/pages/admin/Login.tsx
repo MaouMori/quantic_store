@@ -182,13 +182,13 @@ export default function Login() {
 
           {mode === 'login' && (
             <div className="mt-6 pt-4 border-t border-neon-pink/10 space-y-3">
-              <button
-                onClick={() => { setMode('register'); setError(''); setSuccess('') }}
+              <Link
+                to="/login"
                 className="w-full text-center text-sm text-neon-pink hover:text-hot-pink transition-colors flex items-center justify-center gap-2"
               >
                 <UserPlus className="w-4 h-4" />
-                Criar nova conta
-              </button>
+                Entrar ou criar conta de cliente
+              </Link>
               <button
                 onClick={() => { setMode('forgot'); setError(''); setSuccess('') }}
                 className="w-full text-center text-xs text-text-dim hover:text-text-main transition-colors"

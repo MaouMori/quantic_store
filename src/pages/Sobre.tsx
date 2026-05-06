@@ -1,6 +1,10 @@
 import { Heart, Star, Users, Package, Clock } from 'lucide-react'
+import { useAdmin } from '../context/useAdmin'
 
 export default function Sobre() {
+  const { customers, products, orders } = useAdmin()
+  const deliveredOrders = orders.filter(order => order.status === 'concluido').length
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
@@ -30,9 +34,9 @@ export default function Sobre() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { icon: Users, label: 'Clientes', value: '500+' },
-            { icon: Package, label: 'Produtos', value: '50+' },
-            { icon: Clock, label: 'Entrega', value: 'Instantanea' },
+            { icon: Users, label: 'Clientes', value: String(customers.length) },
+            { icon: Package, label: 'Produtos', value: String(products.length) },
+            { icon: Clock, label: 'Entregas concluidas', value: String(deliveredOrders) },
           ].map(stat => (
             <div
               key={stat.label}
