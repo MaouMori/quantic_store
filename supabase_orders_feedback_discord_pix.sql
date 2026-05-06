@@ -5,6 +5,7 @@ alter table public.orders
   add column if not exists customer_discord text,
   add column if not exists payment_method text default 'pix',
   add column if not exists payment_status text default 'pendente',
+  add column if not exists discord_verified boolean default false,
   add column if not exists coupon_code text,
   add column if not exists discount_amount numeric default 0;
 
@@ -39,5 +40,26 @@ begin
     create policy "Feedbacks public insert"
       on public.feedbacks for insert
       with check (rating between 1 and 5 and length(trim(name)) > 0 and length(trim(text)) > 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'feedbacks' and policyname = 'Feedbacks authenticated update'
+  ) then
+    create policy "Feedbacks authenticated update"
+      on public.feedbacks for update
+      to authenticated
+      using (true)
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'feedbacks' and policyname = 'Feedbacks authenticated delete'
+  ) then
+    create policy "Feedbacks authenticated delete"
+      on public.feedbacks for delete
+      to authenticated
+      using (true);
   end if;
 end $$;

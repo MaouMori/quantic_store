@@ -5,6 +5,10 @@ import {
   ChevronRight,
   X,
   ShoppingBag,
+  Trash2,
+  Save,
+  Copy,
+  MessageCircle,
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
 import type { Order } from '../../context/AdminContext'
@@ -18,7 +22,7 @@ const statusOptions = [
 ]
 
 export default function AdminPedidos() {
-  const { orders, updateOrderStatus } = useAdmin()
+  const { orders, updateOrderStatus, updateOrder, deleteOrder } = useAdmin()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -45,6 +49,14 @@ export default function AdminPedidos() {
     setFeedback(result.success
       ? { type: 'success', message: 'Status do pedido atualizado.' }
       : { type: 'error', message: result.error || 'Nao foi possivel atualizar o pedido.' })
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja apagar este pedido?')) return
+    const result = await deleteOrder(id)
+    setFeedback(result.success
+      ? { type: 'success', message: 'Pedido apagado.' }
+      : { type: 'error', message: result.error || 'Nao foi possivel apagar o pedido.' })
   }
 
   return (
@@ -144,12 +156,20 @@ export default function AdminPedidos() {
                     R$ {order.total.toFixed(2).replace('.', ',')}
                   </td>
                   <td className="py-3">
+                    <div className="flex items-center gap-1">
                     <button
                       onClick={() => setEditing(order)}
                       className="p-1.5 text-text-dim hover:text-neon-pink transition-colors"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
                     </button>
+                    <button
+                      onClick={() => handleDelete(order.id)}
+                      className="p-1.5 text-text-dim hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -202,13 +222,57 @@ export default function AdminPedidos() {
       </div>
 
       {editing && (
-        <OrderModal order={editing} onClose={() => setEditing(null)} />
+        <OrderModal
+          order={editing}
+          onClose={() => setEditing(null)}
+          onSave={async (id, patch) => {
+            const result = await updateOrder(id, patch)
+            setFeedback(result.success
+              ? { type: 'success', message: 'Pedido atualizado.' }
+              : { type: 'error', message: result.error || 'Nao foi possivel atualizar o pedido.' })
+            if (result.success) setEditing(null)
+          }}
+          onDelete={handleDelete}
+        />
       )}
     </div>
   )
 }
 
-function OrderModal({ order, onClose }: { order: Order; onClose: () => void }) {
+function OrderModal({
+  order,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  order: Order
+  onClose: () => void
+  onSave: (id: string, patch: Partial<Order>) => Promise<void>
+  onDelete: (id: string) => Promise<void>
+}) {
+  const [form, setForm] = useState({
+    customer: order.customer,
+    customerEmail: order.customerEmail || '',
+    customerDiscord: order.customerDiscord || '',
+    status: order.status,
+    paymentStatus: order.paymentStatus || 'pendente',
+    discordVerified: order.discordVerified || false,
+  })
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    await onSave(order.id, {
+      customer: form.customer,
+      customerEmail: form.customerEmail,
+      customerDiscord: form.customerDiscord,
+      status: form.status,
+      paymentStatus: form.paymentStatus as Order['paymentStatus'],
+      discordVerified: form.discordVerified,
+    })
+    setSaving(false)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -241,6 +305,38 @@ function OrderModal({ order, onClose }: { order: Order; onClose: () => void }) {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-neon-pink/10 pt-4">
+            <input value={form.customer} onChange={event => setForm(prev => ({ ...prev, customer: event.target.value }))}
+              className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main text-sm" placeholder="Cliente" />
+            <input value={form.customerEmail} onChange={event => setForm(prev => ({ ...prev, customerEmail: event.target.value }))}
+              className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main text-sm" placeholder="Email" />
+            <div className="sm:col-span-2 grid grid-cols-[1fr_auto_auto] gap-2">
+              <input value={form.customerDiscord} onChange={event => setForm(prev => ({ ...prev, customerDiscord: event.target.value }))}
+                className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main text-sm" placeholder="Discord" />
+              <button type="button" onClick={() => navigator.clipboard?.writeText(form.customerDiscord)}
+                className="w-10 rounded-lg border border-neon-pink/20 text-neon-pink flex items-center justify-center">
+                <Copy className="w-4 h-4" />
+              </button>
+              <a href={`https://discord.com/users/${form.customerDiscord.replace(/[<@!>]/g, '')}`} target="_blank" rel="noopener noreferrer"
+                className="w-10 rounded-lg border border-neon-pink/20 text-neon-pink flex items-center justify-center">
+                <MessageCircle className="w-4 h-4" />
+              </a>
+            </div>
+            <select value={form.status} onChange={event => setForm(prev => ({ ...prev, status: event.target.value as Order['status'] }))}
+              className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main text-sm">
+              {statusOptions.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}
+            </select>
+            <select value={form.paymentStatus} onChange={event => setForm(prev => ({ ...prev, paymentStatus: event.target.value as NonNullable<Order['paymentStatus']> }))}
+              className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main text-sm">
+              <option value="pendente">Pix pendente</option>
+              <option value="pago">Pix confirmado</option>
+            </select>
+            <label className="sm:col-span-2 flex items-center gap-2 text-sm text-text-muted">
+              <input type="checkbox" checked={form.discordVerified} onChange={event => setForm(prev => ({ ...prev, discordVerified: event.target.checked }))} className="accent-neon-pink" />
+              Discord verificado manualmente
+            </label>
+          </div>
+
           <div className="border-t border-neon-pink/10 pt-4">
             <h3 className="font-heading font-bold text-sm text-text-main mb-3">Itens</h3>
             <div className="space-y-2">
@@ -263,6 +359,17 @@ function OrderModal({ order, onClose }: { order: Order; onClose: () => void }) {
             <span className="text-xl font-bold text-neon-pink">
               R$ {order.total.toFixed(2).replace('.', ',')}
             </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-2 border-t border-neon-pink/10 pt-4">
+            <button onClick={() => onDelete(order.id)} className="px-4 py-2 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 flex items-center justify-center gap-2">
+              <Trash2 className="w-4 h-4" />
+              Apagar
+            </button>
+            <button onClick={save} disabled={saving} className="px-5 py-2 rounded-lg bg-neon-pink text-white disabled:opacity-50 flex items-center justify-center gap-2">
+              <Save className="w-4 h-4" />
+              {saving ? 'Salvando...' : 'Salvar'}
+            </button>
           </div>
         </div>
       </div>

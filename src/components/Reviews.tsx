@@ -8,8 +8,9 @@ export default function Reviews() {
   const { feedbacks } = useAdmin()
   const [startIndex, setStartIndex] = useState(0)
   const trackRef = useRef<HTMLDivElement>(null)
-  const visibleReviews = feedbacks.length > 0
-    ? feedbacks.map(feedback => ({
+  const approvedFeedbacks = feedbacks.filter(feedback => feedback.approved)
+  const visibleReviews = approvedFeedbacks.length > 0
+    ? approvedFeedbacks.map(feedback => ({
         id: feedback.id,
         name: feedback.name,
         avatar: '/avatars/default.jpg',

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { CreditCard, History, ClipboardList, Settings, MessageSquare, FileText, FolderTree, Tag, Lock, UserCog, Plus, Trash2 } from 'lucide-react'
+import { CreditCard, History, ClipboardList, Settings, MessageSquare, FileText, FolderTree, Tag, Lock, UserCog, Plus, Trash2, Save, Star, Search } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
 import { AdminFeedback } from '../../components/admin/AdminFeedback'
 import { supabase } from '../../lib/supabase'
@@ -215,15 +215,101 @@ function TaxonomyPanel({
 }
 
 export function AdminUsuarios() {
+  const [profiles, setProfiles] = useState<{ id: string; name: string; email: string; role: string; role_color: string }[]>([])
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Cliente' })
+  const [saving, setSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const loadProfiles = useCallback(async () => {
+    const { data, error } = await supabase.from('profiles').select('id,name,email,role,role_color').order('created_at', { ascending: false })
+    if (!error && data) setProfiles(data as typeof profiles)
+  }, [])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadProfiles()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadProfiles])
+
+  const createUser = async () => {
+    setSaving(true)
+    setFeedback(null)
+    try {
+      const response = await fetch('/api/admin-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Nao foi possivel criar usuario.')
+      setFeedback({ type: 'success', message: 'Usuario criado com sucesso.' })
+      setForm({ name: '', email: '', password: '', role: 'Cliente' })
+      await loadProfiles()
+    } catch (error) {
+      setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Nao foi possivel criar usuario.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-xl text-text-main">Usuarios</h1>
-        <p className="text-text-dim text-sm">Gerencie usuarios do painel</p>
+        <p className="text-text-dim text-sm">Veja perfis existentes e crie usuarios diretamente pelo painel</p>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <UserCog className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Gerenciamento de usuarios em desenvolvimento.</p>
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
+      <div className="review-card rounded-xl p-5">
+        <h2 className="font-heading font-bold text-text-main mb-4 flex items-center gap-2">
+          <UserCog className="w-5 h-5 text-neon-pink" />
+          Novo usuario
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input value={form.name} onChange={event => setForm(prev => ({ ...prev, name: event.target.value }))}
+            placeholder="Nome" className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+          <input value={form.email} onChange={event => setForm(prev => ({ ...prev, email: event.target.value }))}
+            placeholder="Email" className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+          <input type="password" value={form.password} onChange={event => setForm(prev => ({ ...prev, password: event.target.value }))}
+            placeholder="Senha" className="bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+          <div className="flex gap-2">
+            <select value={form.role} onChange={event => setForm(prev => ({ ...prev, role: event.target.value }))}
+              className="min-w-0 flex-1 bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main">
+              <option value="Cliente">Cliente</option>
+              <option value="Administrador">Administrador</option>
+            </select>
+            <button onClick={createUser} disabled={saving} className="w-10 rounded-lg bg-neon-pink text-white disabled:opacity-50 flex items-center justify-center">
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <p className="text-text-dim text-xs mt-3">Requer Vercel env SUPABASE_SERVICE_ROLE_KEY. Sem ela, o Supabase nao permite criar usuarios pelo frontend com seguranca.</p>
+      </div>
+
+      <div className="review-card rounded-xl p-5">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-[10px] text-text-dim uppercase tracking-wider">
+                <th className="pb-3">Nome</th>
+                <th className="pb-3">Email</th>
+                <th className="pb-3">Cargo</th>
+                <th className="pb-3">ID</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {profiles.map(profile => (
+                <tr key={profile.id} className="border-t border-neon-pink/5">
+                  <td className="py-3 text-text-main">{profile.name}</td>
+                  <td className="py-3 text-text-dim">{profile.email}</td>
+                  <td className="py-3"><span className="rounded-full bg-neon-pink/10 text-neon-pink text-xs px-2 py-1">{profile.role}</span></td>
+                  <td className="py-3 text-text-dim font-mono text-xs">{profile.id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {profiles.length === 0 && <p className="text-text-dim text-center py-8">Nenhum perfil encontrado.</p>}
+        </div>
       </div>
     </div>
   )
@@ -260,15 +346,87 @@ export function AdminPaginas() {
 }
 
 export function AdminDepoimentos() {
+  const { feedbacks, updateFeedback, deleteFeedback } = useAdmin()
+  const [editing, setEditing] = useState<string | null>(null)
+  const [draft, setDraft] = useState({ name: '', text: '', rating: 5, approved: true })
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const startEdit = (item: typeof feedbacks[number]) => {
+    setEditing(item.id)
+    setDraft({ name: item.name, text: item.text, rating: item.rating, approved: item.approved })
+  }
+
+  const save = async (id: string) => {
+    const result = await updateFeedback(id, draft)
+    setFeedback(result.success
+      ? { type: 'success', message: 'Feedback atualizado.' }
+      : { type: 'error', message: result.error || 'Nao foi possivel atualizar.' })
+    if (result.success) setEditing(null)
+  }
+
+  const remove = async (id: string) => {
+    if (!confirm('Apagar este feedback?')) return
+    const result = await deleteFeedback(id)
+    setFeedback(result.success
+      ? { type: 'success', message: 'Feedback apagado.' }
+      : { type: 'error', message: result.error || 'Nao foi possivel apagar.' })
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-xl text-text-main">Depoimentos</h1>
-        <p className="text-text-dim text-sm">Gerencie depoimentos de clientes</p>
+        <p className="text-text-dim text-sm">Veja, aprove, edite ou apague feedbacks que aparecem na home</p>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <MessageSquare className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Gerenciamento de depoimentos em desenvolvimento.</p>
+      {feedback && <AdminFeedback type={feedback.type} message={feedback.message} />}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {feedbacks.map(item => (
+          <div key={item.id} className="review-card rounded-xl p-5 space-y-3">
+            {editing === item.id ? (
+              <>
+                <input value={draft.name} onChange={event => setDraft(prev => ({ ...prev, name: event.target.value }))}
+                  className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+                <textarea value={draft.text} onChange={event => setDraft(prev => ({ ...prev, text: event.target.value }))}
+                  className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main resize-none" rows={4} />
+                <div className="flex items-center gap-3">
+                  <input type="number" min="1" max="5" value={draft.rating} onChange={event => setDraft(prev => ({ ...prev, rating: Number(event.target.value) }))}
+                    className="w-20 bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main" />
+                  <label className="flex items-center gap-2 text-text-muted text-sm">
+                    <input type="checkbox" checked={draft.approved} onChange={event => setDraft(prev => ({ ...prev, approved: event.target.checked }))} className="accent-neon-pink" />
+                    Aparece na home
+                  </label>
+                </div>
+                <button onClick={() => save(item.id)} className="bg-neon-pink text-white rounded-lg px-4 py-2 flex items-center gap-2">
+                  <Save className="w-4 h-4" /> Salvar
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-heading font-bold text-text-main">{item.name}</h3>
+                    <p className="text-text-dim text-xs">{item.email || item.discord || 'Sem contato'}</p>
+                  </div>
+                  <span className={`text-xs rounded-full px-2 py-1 ${item.approved ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {item.approved ? 'Publicado' : 'Oculto'}
+                  </span>
+                </div>
+                <div className="flex gap-0.5">{Array.from({ length: item.rating }).map((_, index) => <Star key={index} className="w-4 h-4 text-star fill-star" />)}</div>
+                <p className="text-text-muted text-sm">{item.text}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => startEdit(item)} className="text-neon-pink text-sm">Editar</button>
+                  <button onClick={() => remove(item.id)} className="text-red-400 text-sm">Apagar</button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+        {feedbacks.length === 0 && (
+          <div className="review-card rounded-xl p-5 text-center py-16 lg:col-span-2">
+            <MessageSquare className="w-12 h-12 text-text-dim mx-auto mb-4" />
+            <p className="text-text-muted">Nenhum feedback enviado ainda.</p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -305,15 +463,61 @@ export function AdminTransacoes() {
 }
 
 export function AdminHistorico() {
+  const { orders } = useAdmin()
+  const [search, setSearch] = useState('')
+  const rows = orders.flatMap(order => order.items.map(item => ({
+    order,
+    item,
+    lineTotal: item.price * item.quantity,
+  }))).filter(row => {
+    const query = search.toLowerCase()
+    return !query || row.order.customer.toLowerCase().includes(query) || row.item.name.toLowerCase().includes(query) || row.order.id.toLowerCase().includes(query)
+  })
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-xl text-text-main">Historico de Compras</h1>
         <p className="text-text-dim text-sm">Relatorio completo de compras</p>
       </div>
-      <div className="review-card rounded-xl p-5 text-center py-16">
-        <History className="w-12 h-12 text-text-dim mx-auto mb-4" />
-        <p className="text-text-muted">Historico de compras em desenvolvimento.</p>
+      <div className="review-card rounded-xl p-5">
+        <div className="relative max-w-sm mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim" />
+          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar compra..."
+            className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 pl-10 text-text-main" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-[10px] text-text-dim uppercase tracking-wider">
+                <th className="pb-3">Pedido</th>
+                <th className="pb-3">Cliente</th>
+                <th className="pb-3">Produto</th>
+                <th className="pb-3">Qtd</th>
+                <th className="pb-3">Valor</th>
+                <th className="pb-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {rows.map(row => (
+                <tr key={`${row.order.id}-${row.item.productId}-${row.item.name}`} className="border-t border-neon-pink/5">
+                  <td className="py-3 text-text-dim font-mono text-xs">{row.order.id}</td>
+                  <td className="py-3 text-text-main">{row.order.customer}</td>
+                  <td className="py-3 text-text-main">{row.item.name}</td>
+                  <td className="py-3 text-text-dim">{row.item.quantity}</td>
+                  <td className="py-3 text-neon-pink font-semibold">R$ {row.lineTotal.toFixed(2).replace('.', ',')}</td>
+                  <td className="py-3 text-text-dim">{row.order.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {rows.length === 0 && (
+            <div className="text-center py-16">
+              <History className="w-12 h-12 text-text-dim mx-auto mb-4" />
+              <p className="text-text-muted">Nenhuma compra encontrada.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

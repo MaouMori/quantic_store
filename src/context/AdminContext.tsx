@@ -24,6 +24,7 @@ export interface Order {
   discountAmount?: number
   paymentMethod?: 'pix'
   paymentStatus?: 'pendente' | 'pago'
+  discordVerified?: boolean
 }
 
 export interface Coupon {
@@ -156,8 +157,12 @@ export interface AdminContextType {
   updateProduct: (id: number, product: Partial<Product>) => Promise<AdminActionResult>
   deleteProduct: (id: number) => Promise<AdminActionResult>
   addOrder: (order: Omit<Order, 'id'> & { id?: string }) => Promise<AdminActionResult>
+  updateOrder: (id: string, order: Partial<Order>) => Promise<AdminActionResult>
   updateOrderStatus: (id: string, status: Order['status']) => Promise<AdminActionResult>
+  deleteOrder: (id: string) => Promise<AdminActionResult>
   addFeedback: (feedback: Omit<Feedback, 'id' | 'approved' | 'createdAt'>) => Promise<AdminActionResult>
+  updateFeedback: (id: string, feedback: Partial<Feedback>) => Promise<AdminActionResult>
+  deleteFeedback: (id: string) => Promise<AdminActionResult>
   addCoupon: (coupon: Omit<Coupon, 'id' | 'uses'>) => Promise<AdminActionResult>
   updateCoupon: (id: string, coupon: Partial<Coupon>) => Promise<AdminActionResult>
   deleteCoupon: (id: string) => Promise<AdminActionResult>
@@ -253,6 +258,7 @@ function mapDbOrder(row: OrderRow): Order {
     discountAmount: row.discount_amount || 0,
     paymentMethod: row.payment_method || 'pix',
     paymentStatus: row.payment_status || (row.status === 'pago' || row.status === 'concluido' ? 'pago' : 'pendente'),
+    discordVerified: row.discord_verified || false,
   }
 }
 
@@ -419,7 +425,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('feedbacks')
       .select('*')
-      .eq('approved', true)
       .order('created_at', { ascending: false })
     if (!error && data) setFeedbacks(data.map(mapDbFeedback))
   }, [])
@@ -586,7 +591,44 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       discount_amount: order.discountAmount || 0,
       payment_method: order.paymentMethod || 'pix',
       payment_status: order.paymentStatus || 'pendente',
+      discord_verified: order.discordVerified || false,
     })
+    if (error) return fail(error.message)
+    await refreshOrders()
+    return ok()
+  }, [refreshOrders])
+
+  const updateOrder = useCallback(async (id: string, order: Partial<Order>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const updateData: Partial<OrderRow> = {}
+    if (order.customer !== undefined) updateData.customer_name = order.customer
+    if (order.customerEmail !== undefined) updateData.customer_email = order.customerEmail
+    if (order.customerDiscord !== undefined) updateData.customer_discord = order.customerDiscord
+    if (order.customerAvatar !== undefined) updateData.customer_avatar = order.customerAvatar
+    if (order.status !== undefined) updateData.status = order.status
+    if (order.total !== undefined) updateData.total = order.total
+    if (order.items !== undefined) {
+      updateData.items = order.items.map(item => ({
+        product_id: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      }))
+    }
+    if (order.couponCode !== undefined) updateData.coupon_code = order.couponCode
+    if (order.discountAmount !== undefined) updateData.discount_amount = order.discountAmount
+    if (order.paymentMethod !== undefined) updateData.payment_method = order.paymentMethod
+    if (order.paymentStatus !== undefined) updateData.payment_status = order.paymentStatus
+    if (order.discordVerified !== undefined) updateData.discord_verified = order.discordVerified
+    const { error } = await supabase.from('orders').update(updateData).eq('id', id)
+    if (error) return fail(error.message)
+    await refreshOrders()
+    return ok()
+  }, [refreshOrders])
+
+  const deleteOrder = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('orders').delete().eq('id', id)
     if (error) return fail(error.message)
     await refreshOrders()
     return ok()
@@ -603,6 +645,29 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       text: feedback.text,
       approved: true,
     })
+    if (error) return fail(error.message)
+    await refreshFeedbacks()
+    return ok()
+  }, [refreshFeedbacks])
+
+  const updateFeedback = useCallback(async (id: string, feedback: Partial<Feedback>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const updateData: Partial<FeedbackRow> = {}
+    if (feedback.name !== undefined) updateData.name = feedback.name
+    if (feedback.email !== undefined) updateData.email = feedback.email
+    if (feedback.discord !== undefined) updateData.discord = feedback.discord
+    if (feedback.rating !== undefined) updateData.rating = feedback.rating
+    if (feedback.text !== undefined) updateData.text = feedback.text
+    if (feedback.approved !== undefined) updateData.approved = feedback.approved
+    const { error } = await supabase.from('feedbacks').update(updateData).eq('id', id)
+    if (error) return fail(error.message)
+    await refreshFeedbacks()
+    return ok()
+  }, [refreshFeedbacks])
+
+  const deleteFeedback = useCallback(async (id: string) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('feedbacks').delete().eq('id', id)
     if (error) return fail(error.message)
     await refreshFeedbacks()
     return ok()
@@ -880,8 +945,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         updateProduct,
         deleteProduct,
         addOrder,
+        updateOrder,
         updateOrderStatus,
+        deleteOrder,
         addFeedback,
+        updateFeedback,
+        deleteFeedback,
         addCoupon,
         updateCoupon,
         deleteCoupon,
