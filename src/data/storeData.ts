@@ -18,6 +18,7 @@ export interface Product {
   description: string
   inGameImages?: string[]
   specs?: { label: string; value: string }[]
+  createdAt?: string
 }
 
 export const categories = [

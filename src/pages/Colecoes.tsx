@@ -30,14 +30,11 @@ export default function Colecoes() {
       </div>
 
       {pageBanners.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 mb-8">
+        <div className="space-y-4 mb-8">
           {pageBanners.map(banner => (
-            <Link key={banner.id} to={banner.link || '/colecoes'} className="block rounded-xl overflow-hidden border border-neon-pink/10 bg-void-lighter">
-              <img src={banner.image} alt={banner.title} className="w-full max-h-72 object-cover" />
-              <div className="p-4">
-                <h2 className="font-heading font-bold text-text-main">{banner.title}</h2>
-              </div>
-            </Link>
+            <div key={banner.id} className="max-w-[1320px] mx-auto aspect-[55/32] max-h-[768px] overflow-hidden bg-void">
+              <img src={banner.image} alt={banner.title || 'Banner'} className="w-full h-full object-contain object-center" />
+            </div>
           ))}
         </div>
       )}

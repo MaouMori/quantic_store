@@ -207,6 +207,7 @@ function mapDbProduct(row: ProductRow): Product {
     description: row.description,
     inGameImages: row.in_game_images || [],
     specs: row.specs || [],
+    createdAt: row.created_at,
   }
 }
 
@@ -244,9 +245,9 @@ function mapDbCoupon(row: CouponRow): Coupon {
 function mapDbBanner(row: BannerRow): Banner {
   return {
     id: row.id,
-    title: row.title,
+    title: row.title || '',
     image: row.image,
-    link: row.link,
+    link: row.link || '',
     position: row.position,
     active: row.active,
     createdAt: row.created_at || new Date().toISOString(),

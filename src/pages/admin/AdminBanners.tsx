@@ -25,7 +25,7 @@ export default function AdminBanners() {
   }, [refreshBanners])
 
   const filtered = banners.filter(b =>
-    b.title.toLowerCase().includes(search.toLowerCase())
+    (b.title || '').toLowerCase().includes(search.toLowerCase())
   )
 
   const handleSave = async (banner: Banner) => {
@@ -34,14 +34,18 @@ export default function AdminBanners() {
     let result: AdminActionResult = { success: false, error: 'Nenhuma operacao executada.' }
     if (isCreating) {
       result = await addBanner({
-        title: banner.title,
+        title: banner.title.trim() || 'Banner',
         image: banner.image,
-        link: banner.link,
+        link: banner.link.trim(),
         position: banner.position,
         active: banner.active,
       })
     } else if (editing) {
-      result = await updateBanner(banner.id, banner)
+      result = await updateBanner(banner.id, {
+        ...banner,
+        title: banner.title.trim() || 'Banner',
+        link: banner.link.trim(),
+      })
     }
     if (result.success) {
       setFeedback({ type: 'success', message: 'Banner salvo com sucesso.' })
@@ -107,11 +111,11 @@ export default function AdminBanners() {
               </div>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-text-main">{banner.title}</h3>
+                  <h3 className="font-semibold text-text-main">{banner.title || 'Sem titulo'}</h3>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full ${banner.active ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{banner.active ? 'Ativo' : 'Inativo'}</span>
                 </div>
                 <p className="text-text-dim text-xs mb-1">Posicao: {banner.position}</p>
-                <p className="text-text-dim text-xs mb-3">Link: {banner.link}</p>
+                <p className="text-text-dim text-xs mb-3">Link: {banner.link || 'Sem link'}</p>
                 <div className="flex gap-1">
                   <button onClick={() => setEditing(banner)} className="p-1.5 text-text-dim hover:text-neon-pink transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
                   <button onClick={() => handleDelete(banner.id)} className="p-1.5 text-text-dim hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -170,8 +174,12 @@ function BannerModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const normalizedTitle = form.title?.trim() || 'Banner'
+    const normalizedLink = form.link?.trim() || ''
     onSave({
       ...(form as Banner),
+      title: normalizedTitle,
+      link: normalizedLink,
       id: banner?.id || Date.now().toString(),
       createdAt: banner?.createdAt || new Date().toISOString(),
     })
@@ -188,9 +196,10 @@ function BannerModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Titulo</label>
+            <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Titulo opcional</label>
             <input type="text" value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })}
-              className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main focus:outline-none focus:border-neon-pink/50" required />
+              placeholder="Usado apenas como identificacao no painel"
+              className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50" />
           </div>
 
           <div>
@@ -215,9 +224,9 @@ function BannerModal({
           </div>
 
           <div>
-            <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Link</label>
+            <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Link opcional</label>
             <input type="text" value={form.link || ''} onChange={e => setForm({ ...form, link: e.target.value })}
-              placeholder="/loja" className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50" />
+              placeholder="Deixe vazio para o banner nao ser clicavel" className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50" />
           </div>
 
           <div>

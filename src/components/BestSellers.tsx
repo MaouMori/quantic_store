@@ -9,6 +9,8 @@ const getFinalPrice = (price: number, discountPercent = 0) => {
   return Number((price * (1 - safeDiscount / 100)).toFixed(2))
 }
 
+const getCreatedTime = (createdAt?: string) => createdAt ? new Date(createdAt).getTime() || 0 : 0
+
 export default function BestSellers() {
   const { products } = useAdmin()
   const [startIndex, setStartIndex] = useState(0)
@@ -16,9 +18,11 @@ export default function BestSellers() {
   const { addItem } = useCart()
   const trackRef = useRef<HTMLDivElement>(null)
 
-  const bestsellers = products.filter(p => p.isBestseller && (p.sellIndividually ?? true))
+  const newArrivals = products
+    .filter(p => p.isNew && p.category === 'cabelos' && (p.sellIndividually ?? true))
+    .sort((a, b) => getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt) || b.id - a.id)
   const visibleCount = typeof window !== 'undefined' && window.innerWidth >= 1024 ? 5 : window.innerWidth >= 640 ? 3 : 2
-  const maxIndex = Math.max(0, bestsellers.length - visibleCount)
+  const maxIndex = Math.max(0, newArrivals.length - visibleCount)
 
   const next = () => setStartIndex(prev => Math.min(prev + 1, maxIndex))
   const prev = () => setStartIndex(prev => Math.max(prev - 1, 0))
@@ -47,18 +51,18 @@ export default function BestSellers() {
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-neon-pink" />
             <h2 className="font-display text-2xl sm:text-3xl text-white tracking-wide">
-              MAIS VENDIDOS
+              NOVIDADES
             </h2>
             <Sparkles className="w-5 h-5 text-neon-pink" />
           </div>
-          <button className="text-sm text-text-muted hover:text-neon-pink transition-colors flex items-center gap-1 font-heading">
+          <Link to="/loja" className="text-sm text-text-muted hover:text-neon-pink transition-colors flex items-center gap-1 font-heading">
             VER TODOS
             <ChevronRight className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
 
-        {bestsellers.length === 0 ? (
-          <p className="text-text-dim text-sm">Nenhum produto marcado como mais vendido no painel.</p>
+        {newArrivals.length === 0 ? (
+          <p className="text-text-dim text-sm">Nenhum cabelo marcado como novo no painel.</p>
         ) : (
         <div className="relative">
           <button
@@ -74,7 +78,7 @@ export default function BestSellers() {
               ref={trackRef}
               className="carousel-track gap-4"
             >
-              {bestsellers.map(product => {
+              {newArrivals.map(product => {
                 const finalPrice = getFinalPrice(product.price, product.discountPercent)
                 const discountPercent = Math.min(100, Math.max(0, product.discountPercent || 0))
                 return (
