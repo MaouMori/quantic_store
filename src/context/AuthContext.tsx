@@ -199,6 +199,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       const serverResult = await createUserThroughServer(normalizedEmail, password, normalizedName)
       if (serverResult.success) return { success: true }
+      if (serverResult.error?.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+        return { success: false, error: getAuthErrorMessage(error.message) }
+      }
       return { success: false, error: serverResult.error || getAuthErrorMessage(error.message) }
     }
 
