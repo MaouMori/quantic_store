@@ -94,11 +94,11 @@ export default function Colecoes() {
         {pageBanners.length > 0 ? (
           <div className="space-y-0">
             {pageBanners.map(banner => (
-              <div key={banner.id} className="relative w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] overflow-hidden">
+              <div key={banner.id} className="relative w-full max-w-[1920px] mx-auto h-[clamp(260px,56.25vw,720px)] overflow-hidden">
                 <img
                   src={banner.image}
                   alt={banner.title || 'Banner de colecoes'}
-                  className="w-full h-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] object-cover object-center"
+                  className="w-full h-full object-contain object-center"
                 />
               </div>
             ))}

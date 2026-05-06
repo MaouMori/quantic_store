@@ -144,8 +144,8 @@ export default function Loja() {
       {pageBanners.length > 0 && (
         <div className="mb-8">
           {pageBanners.map(banner => (
-            <div key={banner.id} className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] overflow-hidden bg-void">
-              <img src={banner.image} alt={banner.title || 'Banner'} className="w-full h-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] object-cover object-center" />
+            <div key={banner.id} className="w-full max-w-[1920px] mx-auto h-[clamp(260px,56.25vw,720px)] overflow-hidden bg-void">
+              <img src={banner.image} alt={banner.title || 'Banner'} className="w-full h-full object-contain object-center" />
             </div>
           ))}
         </div>
