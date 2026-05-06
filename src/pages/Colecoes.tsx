@@ -44,6 +44,7 @@ export default function Colecoes() {
   const { banners, storeCollections, products, productCategories } = useAdmin()
   const { addItem } = useCart()
   const [selectedCategory, setSelectedCategory] = useState('todos')
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null)
   const [sortBy, setSortBy] = useState('recentes')
   const pageBanners = banners.filter(banner => banner.active && banner.position === 'colecoes')
   const collections = useMemo(() => {
@@ -70,7 +71,7 @@ export default function Colecoes() {
       : defaultCategories.filter(item => item.value !== 'todos').map(item => ({ value: item.value, label: item.label }))),
   ]
 
-  const featuredCollection = collections[0]
+  const featuredCollection = collections.find(collection => collection.id === selectedCollectionId) || collections[0]
   const featuredProducts = useMemo(() => {
     const visibleProducts = products.filter(product => product.sellIndividually ?? true)
     const collectionProducts = featuredCollection
@@ -170,7 +171,7 @@ export default function Colecoes() {
 
         {collections.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {collections.map((collection, index) => {
+            {collections.map(collection => {
               const collectionProducts = products.filter(product =>
                 product.collectionId === collection.id || collection.productIds.includes(product.id)
               )
@@ -178,8 +179,9 @@ export default function Colecoes() {
               return (
                 <div
                   key={collection.id}
-                  className={`group relative overflow-hidden rounded-lg border bg-void-light transition-all duration-300 hover:-translate-y-1 ${
-                    index === 0 ? 'border-neon-pink shadow-[0_0_35px_rgba(255,45,149,0.25)]' : 'border-neon-pink/15 hover:border-neon-pink/50'
+                  onClick={() => setSelectedCollectionId(collection.id)}
+                  className={`group relative overflow-hidden rounded-lg border bg-void-light transition-all duration-300 hover:-translate-y-1 cursor-pointer ${
+                    featuredCollection?.id === collection.id ? 'border-neon-pink shadow-[0_0_35px_rgba(255,45,149,0.25)]' : 'border-neon-pink/15 hover:border-neon-pink/50'
                   }`}
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-void-lighter">
@@ -189,7 +191,7 @@ export default function Colecoes() {
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-void via-void/20 to-transparent" />
-                    {index === 0 && (
+                    {featuredCollection?.id === collection.id && (
                       <span className="absolute top-3 left-3 rounded-md bg-neon-pink px-3 py-1 text-[10px] font-heading font-bold uppercase tracking-wider text-white">
                         Destaque
                       </span>
@@ -211,6 +213,7 @@ export default function Colecoes() {
                     </p>
                     <Link
                       to={`/colecoes/${collection.id}`}
+                      onClick={event => event.stopPropagation()}
                       className="mt-4 flex items-center justify-between rounded-md border border-neon-pink/40 px-4 py-2 text-xs font-heading font-bold uppercase tracking-wider text-neon-pink transition-colors hover:bg-neon-pink hover:text-white"
                     >
                       Explorar colecao

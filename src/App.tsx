@@ -11,6 +11,7 @@ import Sobre from './pages/Sobre'
 import Termos from './pages/Termos'
 import MeusPedidos from './pages/MeusPedidos'
 import Feedback from './pages/Feedback'
+import Checkout from './pages/Checkout'
 import CartDrawer from './components/CartDrawer'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
@@ -121,6 +122,7 @@ function AppContent() {
                 <Route path="/termos" element={<Termos />} />
                 <Route path="/meus-pedidos" element={<MeusPedidos />} />
                 <Route path="/feedback" element={<Feedback />} />
+                <Route path="/checkout" element={<Checkout />} />
               </Routes>
             </main>
             

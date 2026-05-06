@@ -22,6 +22,7 @@ export default async function handler(request, response) {
     `Discord: ${order.discord || 'nao informado'}`,
     `Total: R$ ${total.toFixed(2).replace('.', ',')}`,
     order.couponCode ? `Cupom: ${order.couponCode}` : null,
+    order.proofUrl ? `Comprovante: ${order.proofUrl}` : null,
     '',
     '**Itens**',
     ...items.map(item => `- ${item.name} x${item.quantity} - R$ ${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2).replace('.', ',')}`),

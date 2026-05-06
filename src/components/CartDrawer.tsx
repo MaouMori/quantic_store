@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { X, Plus, Minus, ShoppingBag, Trash2, Ticket, Tag, Check, MessageCircle, Copy } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, Plus, Minus, ShoppingBag, Trash2, Ticket, Tag, Check } from 'lucide-react'
 import { useCart } from '../context/useCart'
 import { useAdmin } from '../context/useAdmin'
-import { useAuth } from '../context/useAuth'
 
 interface CartDrawerProps {
   open: boolean
@@ -24,18 +24,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     totalPrice,
   } = useCart()
 
-  const { coupons, addOrder } = useAdmin()
-  const { user } = useAuth()
+  const { coupons } = useAdmin()
+  const navigate = useNavigate()
   const [couponCode, setCouponCode] = useState('')
   const [couponError, setCouponError] = useState('')
   const [couponSuccess, setCouponSuccess] = useState('')
-  const [customerName, setCustomerName] = useState(user?.name || '')
-  const [customerEmail, setCustomerEmail] = useState(user?.email || '')
-  const [customerDiscord, setCustomerDiscord] = useState('')
-  const [checkoutError, setCheckoutError] = useState('')
-  const [checkoutSuccess, setCheckoutSuccess] = useState('')
-  const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const pixKey = import.meta.env.VITE_PIX_KEY || 'Configure VITE_PIX_KEY no Vercel'
 
   const handleApplyCoupon = () => {
     setCouponError('')
@@ -81,79 +74,6 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       }`
     )
     setCouponCode('')
-  }
-
-  const handleCheckout = async () => {
-    setCheckoutError('')
-    setCheckoutSuccess('')
-
-    if (!customerName.trim()) {
-      setCheckoutError('Digite seu nome.')
-      return
-    }
-
-    if (!customerEmail.trim()) {
-      setCheckoutError('Digite seu email.')
-      return
-    }
-
-    if (!customerDiscord.trim()) {
-      setCheckoutError('Digite seu Discord para enviarmos os arquivos.')
-      return
-    }
-
-    setIsCheckingOut(true)
-    const orderId = crypto.randomUUID()
-    const orderPayload = {
-      id: orderId,
-      userId: user?.id,
-      customer: customerName.trim(),
-      customerEmail: customerEmail.trim().toLowerCase(),
-      customerDiscord: customerDiscord.trim(),
-      customerAvatar: user?.avatar || '/avatars/default.jpg',
-      date: new Date().toLocaleString('pt-BR'),
-      status: 'em_processamento' as const,
-      total: totalPrice,
-      items: items.map(item => ({
-        productId: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-      })),
-      couponCode: appliedCoupon?.code,
-      discountAmount,
-      paymentMethod: 'pix' as const,
-      paymentStatus: 'pendente' as const,
-    }
-
-    const result = await addOrder(orderPayload)
-    if (!result.success) {
-      setCheckoutError(result.error || 'Nao foi possivel criar o pedido.')
-      setIsCheckingOut(false)
-      return
-    }
-
-    try {
-      await fetch('/api/notify-discord', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: orderId,
-          customer: orderPayload.customer,
-          email: orderPayload.customerEmail,
-          discord: orderPayload.customerDiscord,
-          total: orderPayload.total,
-          items: orderPayload.items,
-          couponCode: orderPayload.couponCode,
-        }),
-      })
-    } catch (error) {
-      console.warn('Discord notification failed:', error)
-    }
-
-    clearCart()
-    setCheckoutSuccess(`Pedido criado! ID: ${orderId.slice(0, 8)}. Pague via Pix e acompanhe em Meus pedidos.`)
-    setIsCheckingOut(false)
   }
 
   return (
@@ -322,51 +242,6 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
           {items.length > 0 && (
             <div className="p-4 border-t border-neon-pink/10 space-y-3">
-              <div className="space-y-2">
-                <p className="text-xs font-heading font-bold text-text-main tracking-wider flex items-center gap-1">
-                  <MessageCircle className="w-3.5 h-3.5 text-neon-pink" />
-                  DADOS PARA ENTREGA
-                </p>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  placeholder="Seu nome"
-                  className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 text-sm"
-                />
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={e => setCustomerEmail(e.target.value)}
-                  placeholder="Seu email"
-                  className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 text-sm"
-                />
-                <input
-                  type="text"
-                  value={customerDiscord}
-                  onChange={e => setCustomerDiscord(e.target.value)}
-                  placeholder="Seu Discord, ex: maou#0001 ou @maou"
-                  className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-3 py-2 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 text-sm"
-                />
-              </div>
-
-              <div className="rounded-lg border border-neon-pink/20 bg-void-lighter p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs font-heading font-bold text-text-main tracking-wider">PAGAMENTO VIA PIX</p>
-                    <p className="text-text-dim text-xs mt-1 break-all">{pixKey}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard?.writeText(pixKey)}
-                    className="w-9 h-9 rounded-lg border border-neon-pink/20 text-neon-pink hover:bg-neon-pink hover:text-white flex items-center justify-center transition-colors"
-                    title="Copiar chave Pix"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-text-muted">Subtotal</span>
@@ -392,15 +267,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                 </div>
               </div>
 
-              {checkoutError && <p className="text-red-400 text-xs">{checkoutError}</p>}
-              {checkoutSuccess && <p className="text-green-400 text-xs">{checkoutSuccess}</p>}
-
               <button
-                onClick={handleCheckout}
-                disabled={isCheckingOut}
+                onClick={() => {
+                  onClose()
+                  navigate('/checkout')
+                }}
                 className="w-full bg-neon-pink hover:bg-hot-pink disabled:opacity-50 text-white py-3 rounded-xl font-heading font-bold tracking-wider transition-all"
               >
-                {isCheckingOut ? 'CRIANDO PEDIDO...' : 'FINALIZAR COMPRA'}
+                FINALIZAR COMPRA
               </button>
 
               <button

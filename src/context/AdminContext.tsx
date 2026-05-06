@@ -25,6 +25,7 @@ export interface Order {
   paymentMethod?: 'pix'
   paymentStatus?: 'pendente' | 'pago'
   discordVerified?: boolean
+  paymentProofUrl?: string
 }
 
 export interface Coupon {
@@ -259,6 +260,7 @@ function mapDbOrder(row: OrderRow): Order {
     paymentMethod: row.payment_method || 'pix',
     paymentStatus: row.payment_status || (row.status === 'pago' || row.status === 'concluido' ? 'pago' : 'pendente'),
     discordVerified: row.discord_verified || false,
+    paymentProofUrl: row.payment_proof_url,
   }
 }
 
@@ -592,6 +594,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       payment_method: order.paymentMethod || 'pix',
       payment_status: order.paymentStatus || 'pendente',
       discord_verified: order.discordVerified || false,
+      payment_proof_url: order.paymentProofUrl,
     })
     if (error) return fail(error.message)
     await refreshOrders()
@@ -620,6 +623,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (order.paymentMethod !== undefined) updateData.payment_method = order.paymentMethod
     if (order.paymentStatus !== undefined) updateData.payment_status = order.paymentStatus
     if (order.discordVerified !== undefined) updateData.discord_verified = order.discordVerified
+    if (order.paymentProofUrl !== undefined) updateData.payment_proof_url = order.paymentProofUrl
     const { error } = await supabase.from('orders').update(updateData).eq('id', id)
     if (error) return fail(error.message)
     await refreshOrders()

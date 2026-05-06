@@ -354,6 +354,15 @@ function OrderModal({
             </div>
           </div>
 
+          {order.paymentProofUrl && (
+            <div className="border-t border-neon-pink/10 pt-4">
+              <h3 className="font-heading font-bold text-sm text-text-main mb-2">Comprovante</h3>
+              <a href={order.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="text-neon-pink text-sm break-all hover:text-hot-pink">
+                {order.paymentProofUrl}
+              </a>
+            </div>
+          )}
+
           <div className="border-t border-neon-pink/10 pt-4 flex items-center justify-between">
             <span className="text-text-main font-bold">Total</span>
             <span className="text-xl font-bold text-neon-pink">

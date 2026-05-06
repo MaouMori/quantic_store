@@ -6,6 +6,7 @@ alter table public.orders
   add column if not exists payment_method text default 'pix',
   add column if not exists payment_status text default 'pendente',
   add column if not exists discord_verified boolean default false,
+  add column if not exists payment_proof_url text,
   add column if not exists coupon_code text,
   add column if not exists discount_amount numeric default 0;
 

@@ -110,6 +110,7 @@ export type Tables = {
     payment_method?: 'pix'
     payment_status?: 'pendente' | 'pago'
     discord_verified?: boolean
+    payment_proof_url?: string
     created_at?: string
   }
   feedbacks: {
