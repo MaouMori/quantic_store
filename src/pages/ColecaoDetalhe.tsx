@@ -92,15 +92,15 @@ export default function ColecaoDetalhe() {
 
   return (
     <div className="bg-void">
-      <section className="relative min-h-[680px] overflow-hidden border-b border-neon-pink/15">
+      <section className="relative overflow-hidden border-b border-neon-pink/15">
         <div className="absolute inset-0">
-          <img src={collection.image} alt={collection.name} className="w-full h-full object-cover object-center opacity-70" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-void via-transparent to-black/55" />
+          <img src={collection.image} alt="" className="w-full h-full object-cover object-center opacity-35 blur-sm scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-void via-void/30 to-black/60" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_35%,rgba(255,45,149,0.25),transparent_32%)]" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-14">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 lg:pb-16">
           <nav className="flex items-center gap-2 text-sm text-text-dim mb-12">
             <Link to="/" className="hover:text-neon-pink transition-colors">Inicio</Link>
             <ChevronRight className="w-3 h-3" />
@@ -109,8 +109,8 @@ export default function ColecaoDetalhe() {
             <span className="text-text-main">{collection.name}</span>
           </nav>
 
-          <div className="grid lg:grid-cols-[0.82fr_1.18fr] items-end gap-8">
-            <div className="max-w-xl pb-6">
+          <div className="grid lg:grid-cols-[0.78fr_1.22fr] items-center gap-8 lg:gap-10">
+            <div className="max-w-xl">
               <p className="font-heading font-bold text-neon-pink tracking-wider mb-4">COLECAO</p>
               <h1 className="font-display text-6xl sm:text-7xl lg:text-8xl tracking-wide leading-[0.82] text-white drop-shadow-[0_0_22px_rgba(255,45,149,0.25)]">
                 <span className="block">{firstLine}</span>
@@ -139,7 +139,7 @@ export default function ColecaoDetalhe() {
                 ))}
               </div>
 
-              <div className="mt-10 rounded-xl border border-neon-pink/25 bg-black/45 backdrop-blur-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-w-[520px]">
+              <div className="mt-10 rounded-xl border border-neon-pink/25 bg-black/45 backdrop-blur-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-lg border border-neon-pink/30 bg-white flex items-center justify-center">
                     <Gamepad2 className="w-7 h-7 text-void" />
@@ -161,12 +161,15 @@ export default function ColecaoDetalhe() {
               </div>
             </div>
 
-            <div className="hidden lg:block min-h-[560px] relative">
-              <img
-                src={collection.image}
-                alt={collection.name}
-                className="absolute right-[-6%] bottom-[-58px] w-[118%] max-w-none h-[660px] object-contain object-bottom drop-shadow-[0_0_60px_rgba(255,45,149,0.28)]"
-              />
+            <div className="relative w-full">
+              <div className="absolute -inset-4 rounded-2xl bg-neon-pink/20 blur-2xl opacity-60" />
+              <div className="relative overflow-hidden rounded-xl border border-neon-pink/25 bg-black/45 shadow-2xl shadow-neon-pink/10">
+                <img
+                  src={collection.image}
+                  alt={collection.name}
+                  className="block w-full aspect-video object-contain bg-black"
+                />
+              </div>
             </div>
           </div>
         </div>
