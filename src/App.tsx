@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -56,6 +56,16 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   return isAuthenticated && isAdmin ? <>{children}</> : <Navigate to="/login" replace state={{ from: '/admin' }} />
+}
+
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+
+  useEffect(() => {
+    if (!hash) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname, hash])
+
+  return null
 }
 
 function AppContent() {
@@ -146,6 +156,7 @@ function App() {
       <AdminProvider>
         <CartProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <AppContent />
           </BrowserRouter>
         </CartProvider>
