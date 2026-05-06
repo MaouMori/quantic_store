@@ -34,12 +34,12 @@ export default function HeroSlider() {
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 flex items-center justify-center">
         <img
           src={activeSlide.image}
           alt=""
           aria-hidden="true"
-          className="w-full h-full object-cover object-center opacity-70 scale-125 blur-[2px]"
+          className="w-[min(112vw,2150px)] aspect-video object-contain object-center opacity-60 blur-[1px]"
         />
         <div className="absolute inset-0 bg-black/45" />
         <div className="absolute inset-0 bg-gradient-to-t from-void/80 via-transparent to-void/35" />
