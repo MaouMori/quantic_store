@@ -94,10 +94,10 @@ export default function ColecaoDetalhe() {
     <div className="bg-void">
       <section className="relative overflow-hidden border-b border-neon-pink/15">
         <div className="absolute inset-0">
-          <img src={collection.image} alt="" className="w-full h-full object-cover object-center opacity-35 blur-sm scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/45" />
-          <div className="absolute inset-0 bg-gradient-to-t from-void via-void/30 to-black/60" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_35%,rgba(255,45,149,0.25),transparent_32%)]" />
+          <img src={collection.image} alt="" className="w-full h-full object-cover object-center opacity-60" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/60 to-black/25" />
+          <div className="absolute inset-0 bg-gradient-to-t from-void via-void/10 to-black/45" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_35%,rgba(255,45,149,0.18),transparent_34%)]" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 lg:pb-16">
