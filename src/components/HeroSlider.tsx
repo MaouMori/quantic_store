@@ -39,11 +39,10 @@ export default function HeroSlider() {
           src={activeSlide.image}
           alt=""
           aria-hidden="true"
-          className="w-full h-full object-cover object-center opacity-35 scale-105"
+          className="w-full h-full object-cover object-center opacity-70 scale-125 blur-[2px]"
         />
-        <div className="absolute inset-0 bg-black/70" />
-        <div className="absolute inset-0 bg-gradient-to-t from-void via-void/25 to-void/75" />
-        <div className="absolute inset-0 bg-gradient-to-r from-void via-transparent to-void" />
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-t from-void/80 via-transparent to-void/35" />
       </div>
 
       <div className="relative z-10 w-full max-w-[1920px] mx-auto h-[clamp(260px,56.25vw,720px)] overflow-hidden">
