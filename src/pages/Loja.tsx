@@ -9,6 +9,7 @@ import {
   X,
   Search,
 } from 'lucide-react'
+import { categories as defaultCategories, styles as defaultStyles, colors as defaultColors } from '../data/storeData'
 import { useAdmin } from '../context/useAdmin'
 import { useCart } from '../context/useCart'
 
@@ -24,10 +25,16 @@ export default function Loja() {
   const pageBanners = banners.filter(banner => banner.active && banner.position === 'loja')
   const categories = [
     { value: 'todos', label: 'Todos os produtos' },
-    ...productCategories.filter(item => item.active).map(item => ({ value: item.slug, label: item.name })),
+    ...(productCategories.length > 0
+      ? productCategories.filter(item => item.active).map(item => ({ value: item.slug, label: item.name }))
+      : defaultCategories.filter(item => item.value !== 'todos')),
   ]
-  const styles = productStyles.filter(item => item.active).map(item => ({ value: item.slug, label: item.name }))
-  const colors = productColors.filter(item => item.active).map(item => ({ value: item.slug, hex: item.hex, label: item.name }))
+  const styles = productStyles.length > 0
+    ? productStyles.filter(item => item.active).map(item => ({ value: item.slug, label: item.name }))
+    : defaultStyles
+  const colors = productColors.length > 0
+    ? productColors.filter(item => item.active).map(item => ({ value: item.slug, hex: item.hex, label: item.name }))
+    : defaultColors.map(item => ({ value: item.value, hex: item.hex, label: item.value }))
   const [category, setCategory] = useState('todos')
   const [selectedStyles, setSelectedStyles] = useState<Set<string>>(new Set())
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set())
@@ -52,7 +59,12 @@ export default function Loja() {
   }
 
   const toggleColor = (value: string) => {
-    setSelectedColors(prev => {
+    setSelectedColors(prev => prev.has(value) ? new Set() : new Set([value]))
+    setCurrentPage(1)
+  }
+
+  const toggleStyle = (value: string) => {
+    setSelectedStyles(prev => {
       const next = new Set(prev)
       if (next.has(value)) next.delete(value)
       else next.add(value)
@@ -277,7 +289,7 @@ export default function Loja() {
                           : 'border-transparent hover:scale-105'
                       }`}
                       style={{ backgroundColor: c.hex }}
-                      title={c.value}
+                      title={c.label}
                     />
                   ))}
                 </div>
@@ -300,8 +312,10 @@ export default function Loja() {
               {openFilters.has('estilo') && (
                 <div className="p-2 space-y-0.5">
                   {styles.map(s => (
-                    <label
+                    <button
                       key={s.value}
+                      type="button"
+                      onClick={() => toggleStyle(s.value)}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-void-lighter transition-colors"
                     >
                       <div
@@ -318,7 +332,7 @@ export default function Loja() {
                         )}
                       </div>
                       <span className="text-text-muted text-sm">{s.label}</span>
-                    </label>
+                    </button>
                   ))}
                 </div>
               )}

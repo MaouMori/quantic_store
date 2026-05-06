@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useAdmin } from '../../context/useAdmin'
 import type { AdminActionResult } from '../../context/AdminContext'
-import type { Product } from '../../data/storeData'
+import { categories as defaultCategories, styles as defaultStyles, colors as defaultColors, type Product } from '../../data/storeData'
 import { AdminFeedback } from '../../components/admin/AdminFeedback'
 
 export default function AdminProdutos() {
@@ -305,6 +305,13 @@ function ProductModal({
   const toggleArrayValue = (field: 'style' | 'color', value: string) => {
     setForm(prev => {
       const current = prev[field] || []
+      if (field === 'color') {
+        return {
+          ...prev,
+          color: current.includes(value) ? [] : [value],
+        }
+      }
+
       return {
         ...prev,
         [field]: current.includes(value)
@@ -314,9 +321,19 @@ function ProductModal({
     })
   }
 
-  const activeCategories = categories.filter(category => category.active)
-  const activeStyles = styles.filter(style => style.active)
-  const activeColors = colors.filter(color => color.active)
+  const activeCategories = categories.length > 0
+    ? categories.filter(category => category.active)
+    : defaultCategories.filter(category => category.value !== 'todos').map(category => ({
+      name: category.label,
+      slug: category.value,
+      active: true,
+    }))
+  const activeStyles = styles.length > 0
+    ? styles.filter(style => style.active)
+    : defaultStyles.map(style => ({ name: style.label, slug: style.value, active: true }))
+  const activeColors = colors.length > 0
+    ? colors.filter(color => color.active)
+    : defaultColors.map(color => ({ name: color.value, slug: color.value, hex: color.hex, active: true }))
   const activeCollections = collections.filter(collection => collection.active)
 
   return (
@@ -475,7 +492,7 @@ function ProductModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-2">Cores disponiveis</label>
+              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-2">Cor do cabelo</label>
               <div className="flex flex-wrap gap-2">
                 {activeColors.map(color => (
                   <button

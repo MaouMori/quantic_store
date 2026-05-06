@@ -33,7 +33,7 @@ export default function HeroSlider() {
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
-      {/* Full background image - covers entire hero */}
+      {/* Keep the banner framed like the 1320px layout even on ultra-wide screens. */}
       {heroSlides.map((s, index) => (
         <div
           key={s.id}
@@ -41,15 +41,17 @@ export default function HeroSlider() {
             index === activeIndex ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <img
-            src={s.image}
-            alt={s.title}
-            className="w-full h-full object-cover object-top"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement
-              target.style.display = 'none'
-            }}
-          />
+          <div className="h-full max-w-[1320px] mx-auto relative overflow-hidden">
+            <img
+              src={s.image}
+              alt={s.title}
+              className="w-full h-full object-cover object-top"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+              }}
+            />
+          </div>
           {/* Light overlay only on left side for text readability */}
           <div className="absolute inset-0 bg-gradient-to-r from-void/80 via-void/40 to-transparent" />
           {/* Subtle bottom gradient */}
