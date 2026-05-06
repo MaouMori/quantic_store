@@ -20,7 +20,6 @@ import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'
 import { AdminProvider } from './context/AdminContext'
-import Login from './pages/admin/Login'
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import AdminProdutos from './pages/admin/AdminProdutos'
@@ -56,7 +55,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return isAuthenticated && isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />
+  return isAuthenticated && isAdmin ? <>{children}</> : <Navigate to="/login" replace state={{ from: '/admin' }} />
 }
 
 function AppContent() {
@@ -73,8 +72,8 @@ function AppContent() {
   return (
     <Routes>
       {/* Admin Routes */}
-      <Route path="/admin/login" element={<Login />} />
-      <Route path="/admin/reset-password" element={<Login />} />
+      <Route path="/admin/login" element={<Navigate to="/login" replace state={{ from: '/admin' }} />} />
+      <Route path="/admin/reset-password" element={<Navigate to="/login" replace />} />
       <Route
         path="/admin"
         element={

@@ -218,6 +218,7 @@ function TaxonomyPanel({
 export function AdminUsuarios() {
   const [profiles, setProfiles] = useState<{ id: string; name: string; email: string; role: string; role_color: string }[]>([])
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Cliente' })
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -257,6 +258,28 @@ export function AdminUsuarios() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const updateUserRole = async (id: string, role: string) => {
+    setUpdatingRole(id)
+    setFeedback(null)
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        role,
+        role_color: role === 'Administrador' ? '#ff2d95' : '#9a8fb0',
+        permissions: role === 'Administrador' ? ['*'] : [],
+      })
+      .eq('id', id)
+    setUpdatingRole(null)
+
+    if (error) {
+      setFeedback({ type: 'error', message: error.message })
+      return
+    }
+
+    setFeedback({ type: 'success', message: role === 'Administrador' ? 'Cargo de administrador aplicado.' : 'Cargo de administrador removido.' })
+    await loadProfiles()
   }
 
   return (
@@ -300,7 +323,7 @@ export function AdminUsuarios() {
                 <th className="pb-3">Nome</th>
                 <th className="pb-3">Email</th>
                 <th className="pb-3">Cargo</th>
-                <th className="pb-3">ID</th>
+                <th className="pb-3">Acoes</th>
               </tr>
             </thead>
             <tbody className="text-sm">
@@ -308,8 +331,18 @@ export function AdminUsuarios() {
                 <tr key={profile.id} className="border-t border-neon-pink/5">
                   <td className="py-3 text-text-main">{profile.name}</td>
                   <td className="py-3 text-text-dim">{profile.email}</td>
-                  <td className="py-3"><span className="rounded-full bg-neon-pink/10 text-neon-pink text-xs px-2 py-1">{profile.role}</span></td>
-                  <td className="py-3 text-text-dim font-mono text-xs">{profile.id}</td>
+                  <td className="py-3">
+                    <select
+                      value={profile.role}
+                      onChange={event => updateUserRole(profile.id, event.target.value)}
+                      disabled={updatingRole === profile.id}
+                      className="bg-void-light border border-neon-pink/20 rounded-lg px-2 py-1 text-text-main text-xs disabled:opacity-50"
+                    >
+                      <option value="Cliente">Cliente</option>
+                      <option value="Administrador">Administrador</option>
+                    </select>
+                  </td>
+                  <td className="py-3 text-text-dim font-mono text-xs">{updatingRole === profile.id ? 'Salvando...' : profile.id}</td>
                 </tr>
               ))}
             </tbody>

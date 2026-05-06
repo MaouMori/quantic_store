@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Eye, EyeOff, LogIn, MessageCircle, UserPlus } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 
 export default function Login() {
   const { login, signUp, loginWithDiscord } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const requestedPath = (location.state as { from?: string } | null)?.from
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -21,19 +23,21 @@ export default function Login() {
     setSuccess('')
     setLoading(true)
 
-    const result = mode === 'login'
-      ? await login(email, password)
-      : await signUp(email, password, name)
-
-    setLoading(false)
-
-    if (!result.success) {
-      setError(result.error || 'Nao foi possivel concluir.')
+    if (mode === 'login') {
+      const result = await login(email, password)
+      setLoading(false)
+      if (!result.success) {
+        setError(result.error || 'Nao foi possivel entrar.')
+        return
+      }
+      navigate(result.user?.role === 'Administrador' && requestedPath === '/admin' ? '/admin' : '/')
       return
     }
 
-    if (mode === 'login') {
-      navigate('/')
+    const result = await signUp(email, password, name)
+    setLoading(false)
+    if (!result.success) {
+      setError(result.error || 'Nao foi possivel criar a conta.')
       return
     }
 
@@ -68,7 +72,7 @@ export default function Login() {
             {mode === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}
           </h1>
           <p className="text-text-muted text-sm mt-2">
-            {mode === 'login' ? 'Acesse sua conta de cliente.' : 'Crie sua conta para acompanhar pedidos.'}
+            {mode === 'login' ? 'Acesse sua conta da Quantic Store.' : 'Crie sua conta para acompanhar pedidos.'}
           </p>
         </div>
 

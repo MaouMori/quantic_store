@@ -37,7 +37,14 @@ create policy "Users can update own profile"
   on public.profiles for update
   to authenticated
   using (id = auth.uid() or public.is_admin())
-  with check (id = auth.uid() or public.is_admin());
+  with check (
+    public.is_admin()
+    or (
+      id = auth.uid()
+      and coalesce(role, 'Cliente') = 'Cliente'
+      and coalesce(permissions, array[]::text[]) = array[]::text[]
+    )
+  );
 
 alter table public.orders enable row level security;
 

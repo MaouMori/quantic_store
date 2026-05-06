@@ -23,10 +23,11 @@ create policy "Public can read site settings"
   using (true);
 
 drop policy if exists "Authenticated can manage site settings" on public.site_settings;
-create policy "Authenticated can manage site settings"
+drop policy if exists "Admins can manage site settings" on public.site_settings;
+create policy "Admins can manage site settings"
   on public.site_settings for all
-  using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists "Public can read help topics" on public.help_topics;
 create policy "Public can read help topics"
@@ -34,10 +35,11 @@ create policy "Public can read help topics"
   using (true);
 
 drop policy if exists "Authenticated can manage help topics" on public.help_topics;
-create policy "Authenticated can manage help topics"
+drop policy if exists "Admins can manage help topics" on public.help_topics;
+create policy "Admins can manage help topics"
   on public.help_topics for all
-  using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+  using (public.is_admin())
+  with check (public.is_admin());
 
 insert into public.site_settings (key, value)
 values ('discord_url', 'https://discord.gg/quanticstore')
