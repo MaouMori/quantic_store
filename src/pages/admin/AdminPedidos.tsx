@@ -94,6 +94,7 @@ export default function AdminPedidos() {
               <tr className="text-left text-[10px] text-text-dim uppercase tracking-wider">
                 <th className="pb-3">Pedido</th>
                 <th className="pb-3">Cliente</th>
+                <th className="pb-3">Discord</th>
                 <th className="pb-3">Data</th>
                 <th className="pb-3">Status</th>
                 <th className="pb-3">Total</th>
@@ -124,6 +125,7 @@ export default function AdminPedidos() {
                       <span className="text-text-main">{order.customer}</span>
                     </div>
                   </td>
+                  <td className="py-3 text-text-dim">{order.customerDiscord || '-'}</td>
                   <td className="py-3 text-text-dim">{order.date}</td>
                   <td className="py-3">
                     <select
@@ -234,6 +236,7 @@ function OrderModal({ order, onClose }: { order: Order; onClose: () => void }) {
             </div>
             <div>
               <p className="text-text-main font-semibold">{order.customer}</p>
+              <p className="text-text-dim text-sm">{order.customerDiscord || 'Discord nao informado'}</p>
               <p className="text-text-dim text-sm">{order.date}</p>
             </div>
           </div>

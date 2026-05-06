@@ -176,9 +176,8 @@ export default function Colecoes() {
               )
 
               return (
-                <Link
+                <div
                   key={collection.id}
-                  to={`/colecoes/${collection.id}`}
                   className={`group relative overflow-hidden rounded-lg border bg-void-light transition-all duration-300 hover:-translate-y-1 ${
                     index === 0 ? 'border-neon-pink shadow-[0_0_35px_rgba(255,45,149,0.25)]' : 'border-neon-pink/15 hover:border-neon-pink/50'
                   }`}
@@ -210,12 +209,15 @@ export default function Colecoes() {
                     <p className="mt-3 min-h-10 text-sm leading-relaxed text-text-muted line-clamp-2">
                       {collection.subtitle || 'Uma selecao exclusiva para transformar seu estilo.'}
                     </p>
-                    <div className="mt-4 flex items-center justify-between rounded-md border border-neon-pink/40 px-4 py-2 text-xs font-heading font-bold uppercase tracking-wider text-neon-pink transition-colors group-hover:bg-neon-pink group-hover:text-white">
+                    <Link
+                      to={`/colecoes/${collection.id}`}
+                      className="mt-4 flex items-center justify-between rounded-md border border-neon-pink/40 px-4 py-2 text-xs font-heading font-bold uppercase tracking-wider text-neon-pink transition-colors hover:bg-neon-pink hover:text-white"
+                    >
                       Explorar colecao
                       <ArrowRight className="w-4 h-4" />
-                    </div>
+                    </Link>
                   </div>
-                </Link>
+                </div>
               )
             })}
           </div>

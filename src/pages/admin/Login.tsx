@@ -16,7 +16,7 @@ export default function Login() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const normalizedEmail = email.trim().toLowerCase()
+  const normalizedEmail = email.replace(/\s+/g, '').trim().toLowerCase()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -97,6 +97,7 @@ export type Tables = {
   }
   orders: {
     id: string
+    user_id?: string
     customer_name: string
     customer_email: string
     customer_discord?: string
@@ -106,6 +107,18 @@ export type Tables = {
     items: { product_id: number; name: string; price: number; quantity: number }[]
     coupon_code?: string
     discount_amount?: number
+    payment_method?: 'pix'
+    payment_status?: 'pendente' | 'pago'
+    created_at?: string
+  }
+  feedbacks: {
+    id: string
+    name: string
+    email?: string
+    discord?: string
+    rating: number
+    text: string
+    approved: boolean
     created_at?: string
   }
   customers: {

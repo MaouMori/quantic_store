@@ -9,6 +9,8 @@ import Colecoes from './pages/Colecoes'
 import ColecaoDetalhe from './pages/ColecaoDetalhe'
 import Sobre from './pages/Sobre'
 import Termos from './pages/Termos'
+import MeusPedidos from './pages/MeusPedidos'
+import Feedback from './pages/Feedback'
 import CartDrawer from './components/CartDrawer'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
@@ -117,6 +119,8 @@ function AppContent() {
                 <Route path="/colecoes/:id" element={<ColecaoDetalhe />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/termos" element={<Termos />} />
+                <Route path="/meus-pedidos" element={<MeusPedidos />} />
+                <Route path="/feedback" element={<Feedback />} />
               </Routes>
             </main>
             

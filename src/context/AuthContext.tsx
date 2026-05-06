@@ -39,7 +39,8 @@ const isSupabaseConfigured = () => {
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 }
 
-const normalizeEmail = (email: string) => email.trim().toLowerCase()
+const normalizeEmail = (email: string) => email.replace(/\s+/g, '').trim().toLowerCase()
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> => {
   let timeoutId: number | undefined
@@ -158,6 +159,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedEmail = normalizeEmail(email)
     const normalizedName = name.trim()
 
+    if (!isValidEmail(normalizedEmail)) {
+      return { success: false, error: 'Email invalido. Confira se nao ha espacos ou caracteres errados.' }
+    }
+
+    if (password.length < 6) {
+      return { success: false, error: 'A senha precisa ter pelo menos 6 caracteres.' }
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
@@ -193,6 +202,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const normalizedEmail = normalizeEmail(email)
+
+    if (!isValidEmail(normalizedEmail)) {
+      return { success: false, error: 'Email invalido. Confira se nao ha espacos ou caracteres errados.' }
+    }
 
     try {
       const { data, error } = await withTimeout(

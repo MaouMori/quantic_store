@@ -11,13 +11,19 @@ const isSupabaseConfigured = () => {
 
 export interface Order {
   id: string
+  userId?: string
   customer: string
   customerEmail?: string
+  customerDiscord?: string
   customerAvatar: string
   date: string
   status: 'concluido' | 'em_processamento' | 'pago' | 'cancelado'
   total: number
   items: { productId: number; name: string; price: number; quantity: number }[]
+  couponCode?: string
+  discountAmount?: number
+  paymentMethod?: 'pix'
+  paymentStatus?: 'pendente' | 'pago'
 }
 
 export interface Coupon {
@@ -68,6 +74,17 @@ export interface Role {
   permissions: string[]
 }
 
+export interface Feedback {
+  id: string
+  name: string
+  email?: string
+  discord?: string
+  rating: number
+  text: string
+  approved: boolean
+  createdAt: string
+}
+
 export interface StoreCollection {
   id: number
   name: string
@@ -115,6 +132,7 @@ export interface AdminContextType {
   coupons: Coupon[]
   customers: Customer[]
   activities: Activity[]
+  feedbacks: Feedback[]
   banners: Banner[]
   roles: Role[]
   storeCollections: StoreCollection[]
@@ -128,6 +146,7 @@ export interface AdminContextType {
   refreshCoupons: () => Promise<void>
   refreshCustomers: () => Promise<void>
   refreshBanners: () => Promise<void>
+  refreshFeedbacks: () => Promise<void>
   refreshRoles: () => Promise<void>
   refreshStoreCollections: () => Promise<void>
   refreshProductCategories: () => Promise<void>
@@ -136,8 +155,9 @@ export interface AdminContextType {
   addProduct: (product: Omit<Product, 'id'>) => Promise<AdminActionResult>
   updateProduct: (id: number, product: Partial<Product>) => Promise<AdminActionResult>
   deleteProduct: (id: number) => Promise<AdminActionResult>
-  addOrder: (order: Omit<Order, 'id'>) => Promise<AdminActionResult>
+  addOrder: (order: Omit<Order, 'id'> & { id?: string }) => Promise<AdminActionResult>
   updateOrderStatus: (id: string, status: Order['status']) => Promise<AdminActionResult>
+  addFeedback: (feedback: Omit<Feedback, 'id' | 'approved' | 'createdAt'>) => Promise<AdminActionResult>
   addCoupon: (coupon: Omit<Coupon, 'id' | 'uses'>) => Promise<AdminActionResult>
   updateCoupon: (id: string, coupon: Partial<Coupon>) => Promise<AdminActionResult>
   deleteCoupon: (id: string) => Promise<AdminActionResult>
@@ -167,6 +187,7 @@ type OrderRow = Tables['orders']
 type OrderItemRow = OrderRow['items'][number]
 type CouponRow = Tables['coupons']
 type BannerRow = Tables['banners']
+type FeedbackRow = Tables['feedbacks']
 type RoleRow = Tables['roles']
 type CustomerRow = Tables['customers']
 type StoreCollectionRow = Tables['collections']
@@ -214,7 +235,10 @@ function mapDbProduct(row: ProductRow): Product {
 function mapDbOrder(row: OrderRow): Order {
   return {
     id: row.id,
+    userId: row.user_id,
     customer: row.customer_name,
+    customerEmail: row.customer_email,
+    customerDiscord: row.customer_discord,
     customerAvatar: row.customer_avatar || '/avatars/default.jpg',
     date: row.created_at ? new Date(row.created_at).toLocaleString('pt-BR') : '',
     status: row.status,
@@ -225,6 +249,10 @@ function mapDbOrder(row: OrderRow): Order {
       price: item.price,
       quantity: item.quantity,
     })),
+    couponCode: row.coupon_code,
+    discountAmount: row.discount_amount || 0,
+    paymentMethod: row.payment_method || 'pix',
+    paymentStatus: row.payment_status || (row.status === 'pago' || row.status === 'concluido' ? 'pago' : 'pendente'),
   }
 }
 
@@ -304,6 +332,19 @@ function mapDbProductColor(row: ProductColorRow): ProductColor {
   return { id: row.id, name: row.name, slug: row.slug, hex: row.hex, active: row.active }
 }
 
+function mapDbFeedback(row: FeedbackRow): Feedback {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    discord: row.discord,
+    rating: row.rating,
+    text: row.text,
+    approved: row.approved,
+    createdAt: row.created_at || new Date().toISOString(),
+  }
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
@@ -316,6 +357,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [productStyles, setProductStyles] = useState<ProductStyle[]>([])
   const [productColors, setProductColors] = useState<ProductColor[]>([])
   const [activities] = useState<Activity[]>([])
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [isLoading] = useState(false)
 
   const refreshProducts = useCallback(async () => {
@@ -372,6 +414,16 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (!error && data) setRoles(data.map(mapDbRole))
   }, [])
 
+  const refreshFeedbacks = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .select('*')
+      .eq('approved', true)
+      .order('created_at', { ascending: false })
+    if (!error && data) setFeedbacks(data.map(mapDbFeedback))
+  }, [])
+
   const refreshStoreCollections = useCallback(async () => {
     if (!isSupabaseConfigured()) return
     const { data, error } = await supabase
@@ -416,6 +468,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         refreshCoupons(),
         refreshCustomers(),
         refreshBanners(),
+        refreshFeedbacks(),
         refreshRoles(),
         refreshStoreCollections(),
         refreshProductCategories(),
@@ -425,7 +478,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshRoles, refreshStoreCollections, refreshProductCategories, refreshProductStyles, refreshProductColors])
+  }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshFeedbacks, refreshRoles, refreshStoreCollections, refreshProductCategories, refreshProductStyles, refreshProductColors])
 
   const uploadImage = useCallback(async (file: File, path: string) => {
     if (!isSupabaseConfigured()) {
@@ -512,12 +565,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     return ok()
   }, [refreshProducts])
 
-  const addOrder = useCallback(async (order: Omit<Order, 'id'>) => {
+  const addOrder = useCallback(async (order: Omit<Order, 'id'> & { id?: string }) => {
     if (!isSupabaseConfigured()) return notConfigured()
     const { error } = await supabase.from('orders').insert({
-      id: crypto.randomUUID(),
+      id: order.id || crypto.randomUUID(),
+      user_id: order.userId,
       customer_name: order.customer,
       customer_email: order.customerEmail || 'cliente@teste.local',
+      customer_discord: order.customerDiscord,
       customer_avatar: order.customerAvatar,
       status: order.status,
       total: order.total,
@@ -527,11 +582,31 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         price: i.price,
         quantity: i.quantity,
       })),
+      coupon_code: order.couponCode,
+      discount_amount: order.discountAmount || 0,
+      payment_method: order.paymentMethod || 'pix',
+      payment_status: order.paymentStatus || 'pendente',
     })
     if (error) return fail(error.message)
     await refreshOrders()
     return ok()
   }, [refreshOrders])
+
+  const addFeedback = useCallback(async (feedback: Omit<Feedback, 'id' | 'approved' | 'createdAt'>) => {
+    if (!isSupabaseConfigured()) return notConfigured()
+    const { error } = await supabase.from('feedbacks').insert({
+      id: crypto.randomUUID(),
+      name: feedback.name,
+      email: feedback.email,
+      discord: feedback.discord,
+      rating: feedback.rating,
+      text: feedback.text,
+      approved: true,
+    })
+    if (error) return fail(error.message)
+    await refreshFeedbacks()
+    return ok()
+  }, [refreshFeedbacks])
 
   const updateOrderStatus = useCallback(async (id: string, status: Order['status']) => {
     if (!isSupabaseConfigured()) return notConfigured()
@@ -781,6 +856,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         coupons,
         customers,
         activities,
+        feedbacks,
         banners,
         roles,
         storeCollections,
@@ -794,6 +870,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         refreshCoupons,
         refreshCustomers,
         refreshBanners,
+        refreshFeedbacks,
         refreshRoles,
         refreshStoreCollections,
         refreshProductCategories,
@@ -804,6 +881,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         deleteProduct,
         addOrder,
         updateOrderStatus,
+        addFeedback,
         addCoupon,
         updateCoupon,
         deleteCoupon,

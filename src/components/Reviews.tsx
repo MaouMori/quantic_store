@@ -1,13 +1,25 @@
 import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Star, Heart } from 'lucide-react'
 import { reviews } from '../data/storeData'
+import { useAdmin } from '../context/useAdmin'
 
 export default function Reviews() {
+  const { feedbacks } = useAdmin()
   const [startIndex, setStartIndex] = useState(0)
   const trackRef = useRef<HTMLDivElement>(null)
+  const visibleReviews = feedbacks.length > 0
+    ? feedbacks.map(feedback => ({
+        id: feedback.id,
+        name: feedback.name,
+        avatar: '/avatars/default.jpg',
+        rating: feedback.rating,
+        text: feedback.text,
+      }))
+    : reviews
 
   const visibleCount = typeof window !== 'undefined' && window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1
-  const maxIndex = Math.max(0, reviews.length - visibleCount)
+  const maxIndex = Math.max(0, visibleReviews.length - visibleCount)
 
   const next = () => setStartIndex(prev => Math.min(prev + 1, maxIndex))
   const prev = () => setStartIndex(prev => Math.max(prev - 1, 0))
@@ -39,6 +51,9 @@ export default function Reviews() {
             </div>
             <span className="text-text-main font-bold">4.9</span>
             <span className="text-text-dim text-sm">(312 avaliacoes)</span>
+            <Link to="/feedback" className="text-neon-pink text-sm hover:text-hot-pink transition-colors">
+              Deixar feedback
+            </Link>
           </div>
         </div>
 
@@ -54,7 +69,7 @@ export default function Reviews() {
 
           <div className="overflow-hidden mx-6">
             <div ref={trackRef} className="carousel-track gap-4">
-              {reviews.map(review => (
+              {visibleReviews.map(review => (
                 <div
                   key={review.id}
                   className="review-card flex-shrink-0 w-full sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)] rounded-xl p-5 relative"

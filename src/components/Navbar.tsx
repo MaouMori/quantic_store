@@ -133,6 +133,14 @@ export default function Navbar({ onCartClick }: NavbarProps) {
                             Painel admin
                           </Link>
                         )}
+                        <Link
+                          to="/meus-pedidos"
+                          onClick={() => setAccountOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          Meus pedidos
+                        </Link>
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors text-left"
@@ -142,14 +150,32 @@ export default function Navbar({ onCartClick }: NavbarProps) {
                         </button>
                       </>
                     ) : (
-                      <Link
-                        to="/admin/login"
-                        onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neon-pink hover:bg-neon-pink/10 transition-colors"
-                      >
-                        <LogIn className="w-4 h-4" />
-                        Entrar
-                      </Link>
+                      <>
+                        <Link
+                          to="/meus-pedidos"
+                          onClick={() => setAccountOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          Meus pedidos
+                        </Link>
+                        <Link
+                          to="/feedback"
+                          onClick={() => setAccountOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:bg-neon-pink/10 hover:text-neon-pink transition-colors"
+                        >
+                          <Heart className="w-4 h-4" />
+                          Feedback
+                        </Link>
+                        <Link
+                          to="/admin/login"
+                          onClick={() => setAccountOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neon-pink hover:bg-neon-pink/10 transition-colors"
+                        >
+                          <LogIn className="w-4 h-4" />
+                          Admin
+                        </Link>
+                      </>
                     )}
                   </div>
                 )}
@@ -213,6 +239,22 @@ export default function Navbar({ onCartClick }: NavbarProps) {
                 {link.label}
               </Link>
             ))}
+            <Link
+              to="/meus-pedidos"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider text-text-muted hover:bg-void-lighter hover:text-text-main transition-colors"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              MEUS PEDIDOS
+            </Link>
+            <Link
+              to="/feedback"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-heading font-semibold tracking-wider text-text-muted hover:bg-void-lighter hover:text-text-main transition-colors"
+            >
+              <Heart className="w-4 h-4" />
+              FEEDBACK
+            </Link>
             <Link
               to={isAuthenticated && isAdmin ? '/admin' : '/admin/login'}
               onClick={() => setMobileOpen(false)}
