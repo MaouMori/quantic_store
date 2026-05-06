@@ -242,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }, { onConflict: 'id' })
 
       if (profileError) {
-        return { success: false, error: `Conta criada, mas o perfil nao foi salvo: ${profileError.message}` }
+        console.warn('Conta criada, mas o perfil nao foi salvo agora:', profileError.message)
       }
     }
 
