@@ -39,7 +39,12 @@ const isSupabaseConfigured = () => {
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 }
 
-const normalizeEmail = (email: string) => email.replace(/\s+/g, '').trim().toLowerCase()
+const normalizeEmail = (email: string) =>
+  email
+    .normalize('NFKC')
+    .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .toLowerCase()
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> => {

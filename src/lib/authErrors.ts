@@ -10,7 +10,7 @@ export const getAuthErrorMessage = (message?: string) => {
   }
 
   if (normalizedMessage.includes('email address') && normalizedMessage.includes('invalid')) {
-    return 'Email invalido. Confira se nao ha espacos ou caracteres errados.'
+    return 'O Supabase recusou esse email. Digite o email manualmente sem copiar/colar ou teste outro email real.'
   }
 
   if (normalizedMessage.includes('user already registered') || normalizedMessage.includes('already registered')) {

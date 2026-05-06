@@ -16,7 +16,11 @@ export default function Login() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const normalizedEmail = email.replace(/\s+/g, '').trim().toLowerCase()
+  const normalizedEmail = email
+    .normalize('NFKC')
+    .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .toLowerCase()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,6 +29,7 @@ export default function Login() {
     setLoading(true)
 
     try {
+      setEmail(normalizedEmail)
       if (mode === 'login') {
         const result = await login(normalizedEmail, password)
         if (result.success) {
@@ -45,7 +50,7 @@ export default function Login() {
         const result = await signUp(normalizedEmail, password, name)
         if (result.success) {
           setEmail(normalizedEmail)
-          setSuccess('Conta criada! Verifique seu email para confirmar. Depois, confirme que o perfil esta como Administrador no Supabase.')
+          setSuccess('Conta criada! Verifique seu email para confirmar.')
           setMode('login')
         } else {
           setError(result.error || 'Erro ao criar conta.')
@@ -115,6 +120,9 @@ export default function Login() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="seu@email.com"
+                autoCapitalize="none"
+                autoComplete="email"
+                spellCheck={false}
                 className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-3 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 transition-colors"
                 required
               />
