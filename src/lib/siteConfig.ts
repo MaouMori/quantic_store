@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
+const isSupabaseConfigured = () => {
+  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+}
+
 export const DEFAULT_DISCORD_URL = 'https://discord.gg/quanticstore'
 
 export const DEFAULT_HELP_TOPICS = [
@@ -55,15 +59,24 @@ export function useDiscordUrl() {
   const [discordUrl, setDiscordUrl] = useState(DEFAULT_DISCORD_URL)
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'discord_url')
-      .maybeSingle<{ value: string }>()
-    setDiscordUrl(data?.value || DEFAULT_DISCORD_URL)
+    if (!isSupabaseConfigured()) return
+
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'discord_url')
+        .maybeSingle<{ value: string }>()
+      setDiscordUrl(data?.value || DEFAULT_DISCORD_URL)
+    } catch (error) {
+      console.warn('Nao foi possivel carregar o link do Discord.', error)
+      setDiscordUrl(DEFAULT_DISCORD_URL)
+    }
   }, [])
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) return
+
     const timeoutId = window.setTimeout(() => {
       void refresh()
     }, 0)
@@ -91,28 +104,42 @@ export function useDiscordUrl() {
 
 export function useHelpTopics() {
   const [topics, setTopics] = useState<HelpTopic[]>(DEFAULT_HELP_TOPICS)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(isSupabaseConfigured())
 
   const refresh = useCallback(async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('help_topics')
-      .select('id,title,answer,sort_order,active')
-      .order('sort_order', { ascending: true })
-
-    if (!error && data && data.length > 0) {
-      setTopics(data.map(topic => ({
-        id: topic.id,
-        title: topic.title,
-        answer: topic.answer,
-        sortOrder: topic.sort_order,
-        active: topic.active,
-      })))
+    if (!isSupabaseConfigured()) {
+      setTopics(DEFAULT_HELP_TOPICS)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('help_topics')
+        .select('id,title,answer,sort_order,active')
+        .order('sort_order', { ascending: true })
+
+      if (!error && data && data.length > 0) {
+        setTopics(data.map((topic, index) => ({
+          id: topic.id || `topico-${index + 1}`,
+          title: topic.title || 'Ajuda',
+          answer: topic.answer || '',
+          sortOrder: topic.sort_order ?? index + 1,
+          active: topic.active ?? true,
+        })))
+      }
+    } catch (error) {
+      console.warn('Nao foi possivel carregar os topicos de ajuda.', error)
+      setTopics(DEFAULT_HELP_TOPICS)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
+    if (!isSupabaseConfigured()) return
+
     const timeoutId = window.setTimeout(() => {
       void refresh()
     }, 0)
