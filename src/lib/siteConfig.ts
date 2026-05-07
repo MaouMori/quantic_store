@@ -54,20 +54,37 @@ export const slugifyHelpTitle = (value: string) =>
 export function useDiscordUrl() {
   const [discordUrl, setDiscordUrl] = useState(DEFAULT_DISCORD_URL)
 
-  useEffect(() => {
-    let mounted = true
-    void (async () => {
-      const { data } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'discord_url')
-        .maybeSingle<{ value: string }>()
-      if (mounted && data?.value) setDiscordUrl(data.value)
-    })()
-    return () => {
-      mounted = false
-    }
+  const refresh = useCallback(async () => {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'discord_url')
+      .maybeSingle<{ value: string }>()
+    setDiscordUrl(data?.value || DEFAULT_DISCORD_URL)
   }, [])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void refresh()
+    }, 0)
+
+    const channel = supabase
+      .channel('site-settings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
+        void refresh()
+      })
+    void channel.subscribe()
+
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) void refresh()
+    }, 15000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearInterval(intervalId)
+      void supabase.removeChannel(channel)
+    }
+  }, [refresh])
 
   return discordUrl
 }
@@ -99,7 +116,23 @@ export function useHelpTopics() {
     const timeoutId = window.setTimeout(() => {
       void refresh()
     }, 0)
-    return () => window.clearTimeout(timeoutId)
+
+    const channel = supabase
+      .channel('help-topics-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'help_topics' }, () => {
+        void refresh()
+      })
+    void channel.subscribe()
+
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) void refresh()
+    }, 15000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearInterval(intervalId)
+      void supabase.removeChannel(channel)
+    }
   }, [refresh])
 
   return { topics, loading, refresh }

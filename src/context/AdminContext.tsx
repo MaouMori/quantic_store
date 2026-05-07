@@ -467,25 +467,93 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (!error && data) setProductColors(data.map(mapDbProductColor))
   }, [])
 
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      refreshProducts(),
+      refreshOrders(),
+      refreshCoupons(),
+      refreshCustomers(),
+      refreshBanners(),
+      refreshFeedbacks(),
+      refreshRoles(),
+      refreshStoreCollections(),
+      refreshProductCategories(),
+      refreshProductStyles(),
+      refreshProductColors(),
+    ])
+  }, [
+    refreshProducts,
+    refreshOrders,
+    refreshCoupons,
+    refreshCustomers,
+    refreshBanners,
+    refreshFeedbacks,
+    refreshRoles,
+    refreshStoreCollections,
+    refreshProductCategories,
+    refreshProductStyles,
+    refreshProductColors,
+  ])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void Promise.all([
-        refreshProducts(),
-        refreshOrders(),
-        refreshCoupons(),
-        refreshCustomers(),
-        refreshBanners(),
-        refreshFeedbacks(),
-        refreshRoles(),
-        refreshStoreCollections(),
-        refreshProductCategories(),
-        refreshProductStyles(),
-        refreshProductColors(),
-      ])
+      void refreshAll()
     }, 0)
-
     return () => window.clearTimeout(timeoutId)
-  }, [refreshProducts, refreshOrders, refreshCoupons, refreshCustomers, refreshBanners, refreshFeedbacks, refreshRoles, refreshStoreCollections, refreshProductCategories, refreshProductStyles, refreshProductColors])
+  }, [refreshAll])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return
+
+    const refreshByTable: Record<string, () => Promise<void>> = {
+      products: refreshProducts,
+      orders: refreshOrders,
+      coupons: refreshCoupons,
+      customers: refreshCustomers,
+      banners: refreshBanners,
+      feedbacks: refreshFeedbacks,
+      roles: refreshRoles,
+      collections: refreshStoreCollections,
+      product_categories: refreshProductCategories,
+      product_styles: refreshProductStyles,
+      product_colors: refreshProductColors,
+    }
+
+    const channel = supabase.channel('store-data-live')
+    Object.entries(refreshByTable).forEach(([table, refresh]) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+        void refresh()
+      })
+    })
+    void channel.subscribe()
+
+    const refreshVisibleTab = () => {
+      if (!document.hidden) void refreshAll()
+    }
+    const intervalId = window.setInterval(refreshVisibleTab, 15000)
+    window.addEventListener('focus', refreshVisibleTab)
+    document.addEventListener('visibilitychange', refreshVisibleTab)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refreshVisibleTab)
+      document.removeEventListener('visibilitychange', refreshVisibleTab)
+      void supabase.removeChannel(channel)
+    }
+  }, [
+    refreshAll,
+    refreshProducts,
+    refreshOrders,
+    refreshCoupons,
+    refreshCustomers,
+    refreshBanners,
+    refreshFeedbacks,
+    refreshRoles,
+    refreshStoreCollections,
+    refreshProductCategories,
+    refreshProductStyles,
+    refreshProductColors,
+  ])
 
   const uploadImage = useCallback(async (file: File, path: string) => {
     if (!isSupabaseConfigured()) {
