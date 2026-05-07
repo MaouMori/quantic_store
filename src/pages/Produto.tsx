@@ -27,7 +27,6 @@ export default function Produto() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [liked, setLiked] = useState(false)
   const [quantity, setQuantity] = useState(1)
-  const [activeTab, setActiveTab] = useState<'descricao' | 'ingame'>('descricao')
   const [ratingOverride, setRatingOverride] = useState<{ productId: number; rating: number; ratingCount: number } | null>(null)
   const [ratingFeedback, setRatingFeedback] = useState<string | null>(null)
   const [ratingSaving, setRatingSaving] = useState(false)
@@ -50,7 +49,7 @@ export default function Produto() {
   const related = products
     .filter(p => p.id !== product.id && p.category === product.category && (p.sellIndividually ?? true))
     .slice(0, 4)
-  const allImages = Array.from(new Set([product.image, ...product.images, ...(product.inGameImages || [])]))
+  const allImages = Array.from(new Set([product.image, ...product.images]))
   const discountPercent = Math.min(100, Math.max(0, product.discountPercent || 0))
   const finalPrice = Number((product.price * (1 - discountPercent / 100)).toFixed(2))
   const ratingValue = ratingOverride?.productId === product.id ? ratingOverride.rating : product.rating || 0
@@ -207,11 +206,6 @@ export default function Produto() {
                     `
                   }}
                 />
-                {i >= product.images.length && (
-                  <span className="absolute bottom-1 right-1 text-[8px] bg-neon-purple text-white px-1 rounded font-bold">
-                    IN-GAME
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -263,39 +257,8 @@ export default function Produto() {
             )}
           </div>
 
-          {/* Tabs */}
-          <div className="border-b border-neon-pink/10">
-            <div className="flex gap-6">
-              <button
-                onClick={() => setActiveTab('descricao')}
-                className={`pb-3 text-sm font-heading font-bold tracking-wider transition-colors relative ${
-                  activeTab === 'descricao'
-                    ? 'text-neon-pink'
-                    : 'text-text-muted hover:text-text-main'
-                }`}
-              >
-                DESCRICAO
-                {activeTab === 'descricao' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-pink" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab('ingame')}
-                className={`pb-3 text-sm font-heading font-bold tracking-wider transition-colors relative ${
-                  activeTab === 'ingame'
-                    ? 'text-neon-pink'
-                    : 'text-text-muted hover:text-text-main'
-                }`}
-              >
-                NO JOGO
-                {activeTab === 'ingame' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-pink" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {activeTab === 'descricao' ? (
+          <div className="space-y-4 border-t border-neon-pink/10 pt-5">
+            <h2 className="font-heading font-bold text-sm tracking-wider text-text-main">DESCRICAO</h2>
             <div className="space-y-4">
               <p className="text-text-muted leading-relaxed">{product.description}</p>
 
@@ -322,45 +285,7 @@ export default function Produto() {
               </div>
               )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-text-muted">
-                Veja como esse item fica dentro do jogo:
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {(product.inGameImages || []).map((img, i) => (
-                  <div
-                    key={i}
-                    className="aspect-video rounded-xl overflow-hidden border border-neon-pink/10 bg-void-lighter"
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} in-game ${i + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                        target.parentElement!.innerHTML = `
-                          <div class="w-full h-full flex flex-col items-center justify-center text-center p-4">
-                            <div class="w-12 h-12 rounded-full bg-neon-purple/10 flex items-center justify-center mb-2">
-                              <span class="text-xl">🎮</span>
-                            </div>
-                            <p class="text-text-dim text-[10px] font-mono">${img}</p>
-                          </div>
-                        `
-                      }}
-                    />
-                  </div>
-                ))}
-                {(!product.inGameImages || product.inGameImages.length === 0) && (
-                  <div className="col-span-2 text-center py-8 text-text-dim">
-                    <span className="text-3xl">🎮</span>
-                    <p className="mt-2">Imagens in-game em breve!</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Quantity & Add to Cart */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">

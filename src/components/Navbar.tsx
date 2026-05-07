@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronDown, LayoutDashboard, LogIn, LogOut, Menu, Search, ShoppingCart, User, X, Heart } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogIn, LogOut, Menu, ShoppingCart, User, X, Heart } from 'lucide-react'
 import { useCart } from '../context/useCart'
 import { useAuth } from '../context/useAuth'
 
@@ -11,7 +11,6 @@ interface NavbarProps {
 export default function Navbar({ onCartClick }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const { totalItems } = useCart()
   const { user, isAuthenticated, isAdmin, logout } = useAuth()
@@ -82,13 +81,6 @@ export default function Navbar({ onCartClick }: NavbarProps) {
 
             {/* Actions */}
             <div className="flex items-center gap-2 lg:gap-3">
-              <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="p-2 text-text-muted hover:text-neon-pink transition-colors"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-
               <button
                 onClick={onCartClick}
                 className="relative p-2 text-text-muted hover:text-neon-pink transition-colors group"
@@ -205,24 +197,6 @@ export default function Navbar({ onCartClick }: NavbarProps) {
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div
-          className={`overflow-hidden transition-all duration-300 ${
-            searchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar produtos..."
-                className="w-full bg-void-light border border-neon-pink/20 rounded-lg px-4 py-2 pl-10 text-text-main placeholder-text-dim focus:outline-none focus:border-neon-pink/50 transition-colors"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim" />
             </div>
           </div>
         </div>

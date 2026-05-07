@@ -231,14 +231,13 @@ function ProductModal({
       collectionId: null,
       sellIndividually: true,
       description: '',
-      inGameImages: [],
       specs: [],
     }
   )
   const [uploading, setUploading] = useState(false)
   const [newSpec, setNewSpec] = useState({ label: '', value: '' })
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'images' | 'inGameImages') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'image' | 'images') => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -263,21 +262,21 @@ function ProductModal({
     onSave({
       ...(form as Product),
       images: form.images || [],
-      inGameImages: form.inGameImages || [],
+      inGameImages: [],
       specs: form.specs || [],
       discountPercent: Math.min(100, Math.max(0, form.discountPercent || 0)),
       id: product?.id || Date.now(),
     })
   }
 
-  const removeImage = (field: 'images' | 'inGameImages', index: number) => {
+  const removeImage = (field: 'images', index: number) => {
     setForm(prev => ({
       ...prev,
       [field]: (prev[field] || []).filter((_, i) => i !== index),
     }))
   }
 
-  const addImageUrl = (field: 'images' | 'inGameImages') => {
+  const addImageUrl = (field: 'images') => {
     const url = window.prompt('Cole a URL da imagem')
     if (!url?.trim()) return
     setForm(prev => ({
@@ -439,30 +438,6 @@ function ProductModal({
                   <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, 'images')} />
                 </label>
                 <button type="button" onClick={() => addImageUrl('images')} className="bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors">
-                  Adicionar URL
-                </button>
-              </div>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-heading font-bold text-text-main tracking-wider mb-1">Imagens do cabelo no jogo</label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {(form.inGameImages || []).map((img, index) => (
-                  <div key={`${img}-${index}`} className="relative w-20 h-20 rounded-lg overflow-hidden bg-void-lighter border border-neon-purple/20">
-                    <img src={img} alt={`No jogo ${index + 1}`} className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => removeImage('inGameImages', index)} className="absolute top-1 right-1 w-5 h-5 rounded bg-void/80 text-text-main flex items-center justify-center">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <label className="flex items-center gap-2 cursor-pointer bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors w-fit">
-                  <Upload className="w-4 h-4" />
-                  <span>{uploading ? 'Enviando...' : 'Enviar imagem no jogo'}</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, 'inGameImages')} />
-                </label>
-                <button type="button" onClick={() => addImageUrl('inGameImages')} className="bg-void-lighter hover:bg-neon-pink/10 border border-neon-pink/20 rounded-lg px-4 py-2 text-sm text-neon-pink transition-colors">
                   Adicionar URL
                 </button>
               </div>
