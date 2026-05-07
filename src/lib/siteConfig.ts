@@ -81,13 +81,6 @@ export function useDiscordUrl() {
       void refresh()
     }, 0)
 
-    const channel = supabase
-      .channel('site-settings-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
-        void refresh()
-      })
-    void channel.subscribe()
-
     const intervalId = window.setInterval(() => {
       if (!document.hidden) void refresh()
     }, 15000)
@@ -95,7 +88,6 @@ export function useDiscordUrl() {
     return () => {
       window.clearTimeout(timeoutId)
       window.clearInterval(intervalId)
-      void supabase.removeChannel(channel)
     }
   }, [refresh])
 
@@ -144,13 +136,6 @@ export function useHelpTopics() {
       void refresh()
     }, 0)
 
-    const channel = supabase
-      .channel('help-topics-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'help_topics' }, () => {
-        void refresh()
-      })
-    void channel.subscribe()
-
     const intervalId = window.setInterval(() => {
       if (!document.hidden) void refresh()
     }, 15000)
@@ -158,7 +143,6 @@ export function useHelpTopics() {
     return () => {
       window.clearTimeout(timeoutId)
       window.clearInterval(intervalId)
-      void supabase.removeChannel(channel)
     }
   }, [refresh])
 
